@@ -3,6 +3,9 @@ export type DemoKey =
   | 'pushup' | 'squat' | 'lunge' | 'plank' | 'burpee' | 'climber' | 'bridge'
   | 'situp' | 'crunch' | 'jack' | 'superman' | 'sideplank' | 'dips' | 'highknees'
   | 'wallsit' | 'pullup' | 'diamond' | 'jumpsquat' | 'birddog' | 'bicycle'
+  // 瘦身操 (aerobics)
+  | 'march' | 'buttkick' | 'kickclap' | 'punch' | 'uppercut' | 'armcircle' | 'stepjack'
+  | 'steptouch' | 'sideleg' | 'sidecrunch' | 'hula' | 'sidelunge' | 'skihop' | 'sidebend'
 
 export interface Exercise {
   id: string
@@ -18,6 +21,10 @@ export interface Exercise {
   steps: string[]
   tip: string
   demo: DemoKey
+  /** 'aero' = 瘦身操 (low-impact cardio / aerobic dance moves) */
+  cat?: 'aero'
+  /** no jumping, apartment-friendly (安靜) */
+  quiet?: boolean
 }
 
 export interface PlanItem {
@@ -33,6 +40,8 @@ export interface Plan {
   name: string
   description: string
   builtIn?: boolean
+  /** 'aero' = 瘦身操 plan (built-in follow-along routines) */
+  kind?: 'aero'
   hue: number
   items: PlanItem[]
   updatedAt?: number

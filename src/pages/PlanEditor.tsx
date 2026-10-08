@@ -2,7 +2,7 @@ import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion
 import { useMemo, useState } from 'react'
 import { uid, useStore } from '../lib/store'
 import type { Exercise, Plan, PlanItem } from '../types'
-import { EXERCISES, EX_MAP, GROUPS } from '../data/exercises'
+import { EXERCISES, EX_MAP, FILTERS, matchFilter, type Filter } from '../data/exercises'
 import ExerciseFigure from '../components/ExerciseFigure'
 import { Sheet, Stepper, toast, useConfirm } from '../components/ui'
 import Icon from '../components/Icon'
@@ -203,8 +203,8 @@ function EditRow({ row, onChange, onRemove }: { row: Row; onChange: (p: Partial<
 
 function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (e: Exercise) => void }) {
   const [q, setQ] = useState('')
-  const [group, setGroup] = useState<(typeof GROUPS)[number]>('全部')
-  const list = EXERCISES.filter((e) => (group === '全部' || e.group === group) && (!q || e.name.includes(q) || e.muscles.some((m) => m.includes(q))))
+  const [group, setGroup] = useState<Filter>('全部')
+  const list = EXERCISES.filter((e) => matchFilter(e, group) && (!q || e.name.includes(q) || e.muscles.some((m) => m.includes(q))))
   return (
     <Sheet open={open} onClose={onClose} title="加入動作" tall>
       <div className="search">
@@ -212,7 +212,7 @@ function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClose: () 
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜尋動作" />
       </div>
       <div className="chips">
-        {GROUPS.map((g) => (
+        {FILTERS.map((g) => (
           <button key={g} className={`chip-btn ${g === group ? 'active' : ''}`} onClick={() => setGroup(g)}>
             {g === group && <motion.span layoutId="picker-pill" className="chip-pill" />}
             <span>{g}</span>
@@ -228,7 +228,8 @@ function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClose: () 
             <div className="item-text">
               <h3>{e.name}</h3>
               <p className="muted">
-                {e.group} · {e.type === 'reps' ? `${e.defaultReps} 下` : `${e.defaultSeconds} 秒`}
+                {e.cat === 'aero' ? '瘦身操' : e.group}
+                {e.quiet ? ' · 安靜' : ''} · {e.type === 'reps' ? `${e.defaultReps} 下` : `${e.defaultSeconds} 秒`}
               </p>
             </div>
             <span className="add-dot">

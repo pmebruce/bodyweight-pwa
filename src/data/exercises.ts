@@ -121,8 +121,104 @@ export const EXERCISES: Exercise[] = [
     steps: ['仰躺，雙手輕放耳側，雙腳抬離地面', '捲起上背，右手肘轉向左膝，同時伸直右腳', '換邊，左手肘轉向右膝', '像踩腳踏車一樣持續交替'],
     tip: '重點是軀幹的旋轉，不是用手拉頭；下背貼地。',
   },
+
+  /* ================= 瘦身操 ================= */
+  {
+    id: 'march', name: '原地踏步', en: 'March in Place', group: '全身', muscles: ['髖屈肌', '股四頭肌', '心肺'],
+    difficulty: 1, type: 'time', defaultSeconds: 45, kcalPerMin: 5, demo: 'march', cat: 'aero', quiet: true,
+    steps: ['站直，雙腳與髖同寬，核心微收', '交替抬起膝蓋，大腿抬到約與地面呈 45～90 度', '手肘彎曲約 90 度，跟著對側腳前後擺動', '保持節奏與自然呼吸，腳掌輕輕落地'],
+    tip: '最適合熱身與緩和；想提高強度就抬高膝蓋、加快節奏。',
+  },
+  {
+    id: 'buttkick', name: '後勾腿', en: 'Butt Kicks', group: '下肢', muscles: ['腿後肌', '小腿', '心肺'],
+    difficulty: 1, type: 'time', defaultSeconds: 30, kcalPerMin: 8, demo: 'buttkick', cat: 'aero',
+    steps: ['站直，雙手握拳放在腰側', '原地小跑，腳跟往後勾向臀部', '大腿保持朝下，只有小腿往後踢', '手臂自然前後擺動，前腳掌輕巧著地'],
+    tip: '怕吵到樓下可改成不跳的「交替勾腿」：一腳站穩，另一腳往後勾。',
+  },
+  {
+    id: 'kickclap', name: '踢腿拍手', en: 'Kick & Clap', group: '全身', muscles: ['髖屈肌', '股四頭肌', '核心'],
+    difficulty: 1, type: 'time', defaultSeconds: 30, kcalPerMin: 6, demo: 'kickclap', cat: 'aero', quiet: true,
+    steps: ['站直，雙手舉高過頭', '一腳往前踢高，膝蓋盡量打直', '雙手同時往下擺，在腿的上方或下方拍手', '放下腳、雙手回到頭頂，換腳交替'],
+    tip: '踢腿高度以舒服為主，上半身保持挺直，不要彎腰去追腳。',
+  },
+  {
+    id: 'punch', name: '直拳連擊', en: 'Jab-Cross Punches', group: '上肢', muscles: ['肩部', '三頭肌', '核心'],
+    difficulty: 1, type: 'time', defaultSeconds: 40, kcalPerMin: 7, demo: 'punch', cat: 'aero', quiet: true,
+    steps: ['雙腳前後站開、膝蓋微彎，雙拳護在下巴前', '前手快速向前出拳，手臂伸直後立刻收回', '換後手出拳，後腳跟可微微轉動帶動身體', '左右交替，出拳吐氣，另一手始終護臉'],
+    tip: '出拳時手肘不要完全鎖死；用腹部轉動帶力，打起來更有勁也更燃脂。',
+  },
+  {
+    id: 'uppercut', name: '上勾拳', en: 'Uppercuts', group: '上肢', muscles: ['二頭肌', '肩部', '腹斜肌'],
+    difficulty: 1, type: 'time', defaultSeconds: 30, kcalPerMin: 7, demo: 'uppercut', cat: 'aero', quiet: true,
+    steps: ['拳擊站姿，雙拳護在下巴前', '膝蓋微蹲，一手拳頭往下放到腰的高度', '雙腿蹬直，同時由下往上揮拳到下巴高度', '收回護臉，換手交替'],
+    tip: '力量從腿和腰往上傳，手肘保持約 90 度彎曲，不要往外甩。',
+  },
+  {
+    id: 'armcircle', name: '手臂繞圈', en: 'Arm Circles', group: '上肢', muscles: ['三角肌', '斜方肌'],
+    difficulty: 1, type: 'time', defaultSeconds: 30, kcalPerMin: 3, demo: 'armcircle', cat: 'aero', quiet: true,
+    steps: ['站直，雙腳與肩同寬', '雙手伸直，從身體後方往上、往前畫大圓', '肩膀放鬆不要聳肩，動作連續不停', '做到一半可以換方向（往後繞）'],
+    tip: '很適合當熱身，能活動肩關節、讓上半身暖起來。',
+  },
+  {
+    id: 'stepjack', name: '側踏開合', en: 'Step Jacks', group: '全身', muscles: ['肩部', '臀中肌', '心肺'],
+    difficulty: 1, type: 'time', defaultSeconds: 40, kcalPerMin: 6, demo: 'stepjack', cat: 'aero', quiet: true,
+    steps: ['雙腳併攏站立，雙手放身側', '一腳往側邊踏出，同時雙手從側邊舉過頭頂', '收腳回到中間、雙手放下', '換另一腳往側邊踏，左右交替'],
+    tip: '這是不跳躍的開合跳，安靜又護膝；想加強就加快速度或踏得更寬。',
+  },
+  {
+    id: 'steptouch', name: '側併步', en: 'Step Touch', group: '全身', muscles: ['股四頭肌', '大腿內側', '心肺'],
+    difficulty: 1, type: 'time', defaultSeconds: 45, kcalPerMin: 5, demo: 'steptouch', cat: 'aero', quiet: true,
+    steps: ['雙腳併攏，膝蓋微彎', '右腳往右跨一大步，雙手往兩側打開', '左腳跟上點地，雙手在胸前拍手', '再往左跨步、右腳點地，左右來回'],
+    tip: '膝蓋保持微彎、重心放低，跨步越大越燃脂；跟著音樂節奏做最有趣。',
+  },
+  {
+    id: 'sideleg', name: '站姿側抬腿', en: 'Standing Side Leg Raise', group: '下肢', muscles: ['臀中肌', '腹斜肌'],
+    difficulty: 1, type: 'time', defaultSeconds: 30, kcalPerMin: 4, demo: 'sideleg', cat: 'aero', quiet: true,
+    steps: ['站直，雙手插腰', '一腳伸直往側邊抬起，腳尖朝前', '抬到約 30～45 度，感受臀部外側出力', '慢慢放下，換腳交替'],
+    tip: '上半身不要往另一側倒太多；站不穩可以一手扶牆或椅背。',
+  },
+  {
+    id: 'sidecrunch', name: '站姿側提膝', en: 'Standing Side Crunch', group: '核心', muscles: ['腹斜肌', '髖屈肌'],
+    difficulty: 2, type: 'time', defaultSeconds: 40, kcalPerMin: 6, demo: 'sidecrunch', cat: 'aero', quiet: true,
+    steps: ['雙腳略寬於肩，雙手放在頭後、手肘打開', '一腳膝蓋往側邊抬起', '同時上半身往同側彎，手肘往下靠近膝蓋', '回到站姿，換邊交替'],
+    tip: '用側腹的力量去「夾」，不要只是低頭；手輕扶頭部，不要拉脖子。',
+  },
+  {
+    id: 'hula', name: '擺臀扭腰', en: 'Hip Sway', group: '核心', muscles: ['腹斜肌', '腹肌'],
+    difficulty: 1, type: 'time', defaultSeconds: 40, kcalPerMin: 4, demo: 'hula', cat: 'aero', quiet: true,
+    steps: ['雙腳略寬於肩，膝蓋放鬆微彎', '雙手往兩側打開，像跳草裙舞', '骨盆左右擺動，肩膀盡量保持在中間', '手臂跟著節奏像波浪一樣上下擺動'],
+    tip: '動的是腰和骨盆，不是整個身體左右晃；可以加上畫圈擺動。',
+  },
+  {
+    id: 'sidelunge', name: '側弓步', en: 'Side Lunge', group: '下肢', muscles: ['股四頭肌', '臀肌', '大腿內側'],
+    difficulty: 2, type: 'time', defaultSeconds: 40, kcalPerMin: 7, demo: 'sidelunge', cat: 'aero', quiet: true,
+    steps: ['雙腳打開約兩倍肩寬，腳尖微微朝外', '雙手在胸前合握，重心移到一側', '臀部往後坐、彎曲那側的膝蓋，另一腳伸直', '推回中間，換另一側'],
+    tip: '彎曲的膝蓋要對準腳尖，腳跟踩穩；伸直那條腿會感覺大腿內側在拉伸。',
+  },
+  {
+    id: 'skihop', name: '滑雪跳', en: 'Ski Hops', group: '全身', muscles: ['小腿', '股四頭肌', '心肺'],
+    difficulty: 2, type: 'time', defaultSeconds: 30, kcalPerMin: 10, demo: 'skihop', cat: 'aero',
+    steps: ['雙腳併攏，膝蓋微彎', '雙腳一起往側邊小跳', '落地後馬上往另一側跳回', '手臂像拿滑雪杖一樣跟著擺動'],
+    tip: '用前腳掌輕巧落地、膝蓋緩衝；有跳躍，住公寓可換成側併步。',
+  },
+  {
+    id: 'sidebend', name: '站姿側彎', en: 'Standing Side Bend', group: '核心', muscles: ['腹斜肌', '背闊肌'],
+    difficulty: 1, type: 'time', defaultSeconds: 40, kcalPerMin: 3, demo: 'sidebend', cat: 'aero', quiet: true,
+    steps: ['站直，雙腳與髖同寬，雙手插腰', '一手往上舉高，越過頭頂往另一側延伸', '上半身慢慢側彎，停 2～3 秒感受側腰拉伸', '回到中間，換邊'],
+    tip: '適合當緩和收操；彎的時候身體不要往前倒，保持呼吸不要憋氣。',
+  },
 ]
 
 export const EX_MAP: Record<string, Exercise> = Object.fromEntries(EXERCISES.map((e) => [e.id, e]))
 export const GROUPS = ['全部', '上肢', '核心', '下肢', '全身'] as const
+/** library / picker filter chips */
+export const FILTERS = ['全部', '瘦身操', '安靜不跳', '上肢', '核心', '下肢', '全身'] as const
+export type Filter = (typeof FILTERS)[number]
+export function matchFilter(e: Exercise, f: Filter): boolean {
+  if (f === '全部') return true
+  if (f === '瘦身操') return e.cat === 'aero'
+  if (f === '安靜不跳') return e.cat === 'aero' && !!e.quiet
+  return e.group === f
+}
+export const AERO_COUNT = EXERCISES.filter((e) => e.cat === 'aero').length
 export const DIFF_LABEL = ['', '入門', '中等', '進階'] as const

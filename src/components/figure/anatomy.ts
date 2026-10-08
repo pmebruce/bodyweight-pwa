@@ -55,6 +55,21 @@ export const TARGETS: Record<DemoKey, Targets> = {
   climber: { p: ['abs', 'hipFlexors'], s: ['frontDelt', 'obliques', 'quads'] },
   jack: { p: ['delts', 'calves'], s: ['quads', 'adductors'] },
   highknees: { p: ['hipFlexors', 'quads'], s: ['calves', 'abs'] },
+  // 瘦身操
+  march: { p: ['hipFlexors', 'quads'], s: ['calves', 'abs'] },
+  buttkick: { p: ['hamstrings', 'calves'], s: ['glutes', 'hipFlexors'] },
+  kickclap: { p: ['hipFlexors', 'quads'], s: ['abs', 'delts'] },
+  punch: { p: ['frontDelt', 'triceps'], s: ['obliques', 'abs'] },
+  uppercut: { p: ['biceps', 'frontDelt'], s: ['obliques', 'quads'] },
+  armcircle: { p: ['delts', 'frontDelt', 'rearDelt'], s: ['traps'] },
+  stepjack: { p: ['delts', 'adductors'], s: ['quads', 'calves'] },
+  steptouch: { p: ['quads', 'adductors'], s: ['calves', 'chest'] },
+  sideleg: { p: ['glutes'], s: ['obliques', 'quads'] },
+  sidecrunch: { p: ['obliques'], s: ['hipFlexors', 'abs'] },
+  hula: { p: ['obliques', 'abs'], s: ['quads'] },
+  sidelunge: { p: ['quads', 'adductors'], s: ['glutes', 'calves'] },
+  skihop: { p: ['calves', 'quads'], s: ['adductors', 'abs'] },
+  sidebend: { p: ['obliques', 'lats'], s: ['abs'] },
 }
 
 export const targetLabels = (t: Targets) => ({

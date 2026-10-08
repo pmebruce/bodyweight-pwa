@@ -18,6 +18,8 @@ export default function Home() {
   const lastIdx = last ? plans.findIndex((p) => p.id === last.planId) : -1
   const suggested = plans[(lastIdx + 1) % plans.length] ?? plans[0]
   const est = planEstimate(suggested)
+  const aero = plans.filter((p) => p.kind === 'aero')
+  const fit = plans.filter((p) => p.kind !== 'aero')
   const now = new Date()
   const R = 30
   const C = 2 * Math.PI * R
@@ -101,13 +103,26 @@ export default function Home() {
       </motion.section>
 
       <div className="section-head">
+        <h2>瘦身操</h2>
+        <button className="link" onClick={() => navigate('/plans')}>
+          全部 <Icon name="chevron" size={14} />
+        </button>
+      </div>
+      <p className="section-sub muted">跟著動、不用器材，安靜版不跳躍也能燃脂</p>
+      <div className="plan-scroll">
+        {aero.map((p, i) => (
+          <PlanCard key={p.id} plan={p} index={i} />
+        ))}
+      </div>
+
+      <div className="section-head">
         <h2>訓練計畫</h2>
         <button className="link" onClick={() => navigate('/plans')}>
           全部 <Icon name="chevron" size={14} />
         </button>
       </div>
       <div className="plan-list">
-        {plans.slice(0, 6).map((p, i) => (
+        {fit.slice(0, 6).map((p, i) => (
           <PlanCard key={p.id} plan={p} index={i} />
         ))}
       </div>

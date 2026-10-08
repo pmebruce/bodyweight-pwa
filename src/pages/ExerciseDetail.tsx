@@ -22,7 +22,9 @@ export default function ExerciseDetail({ id }: { id: string }) {
       </motion.div>
 
       <div className="detail-tags">
+        {ex.cat === 'aero' && <span className="tag big aero">瘦身操</span>}
         <span className="tag big">{ex.group}</span>
+        {ex.cat === 'aero' && <span className="tag big">{ex.quiet ? '🤫 安靜不跳' : '有跳躍'}</span>}
         <span className="tag big">
           <Difficulty level={ex.difficulty} /> {DIFF_LABEL[ex.difficulty]}
         </span>

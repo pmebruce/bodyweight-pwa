@@ -24,6 +24,7 @@ export default function PlanCard({ plan, index = 0 }: { plan: Plan; index?: numb
       onClick={() => navigate(`/plan/${plan.id}`)}
     >
       <div className="plan-card-text">
+        {plan.kind === 'aero' && <span className="plan-kind">瘦身操</span>}
         <h3>{plan.name}</h3>
         <p>{plan.description || `${plan.items.length} 個動作`}</p>
         <div className="plan-card-meta">
@@ -31,7 +32,7 @@ export default function PlanCard({ plan, index = 0 }: { plan: Plan; index?: numb
             <Icon name="clock" size={14} /> 約 {est.minutes} 分鐘
           </span>
           <span>
-            <Icon name="bolt" size={14} /> {plan.items.length} 動作 · {est.sets} 組
+            <Icon name="bolt" size={14} /> {plan.items.length} 動作{est.sets !== plan.items.length ? ` · ${est.sets} 組` : ''}
           </span>
         </div>
       </div>

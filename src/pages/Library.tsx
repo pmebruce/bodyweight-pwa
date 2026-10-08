@@ -1,16 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
-import { EXERCISES, GROUPS } from '../data/exercises'
+import { AERO_COUNT, EXERCISES, FILTERS, matchFilter, type Filter } from '../data/exercises'
 import ExerciseFigure from '../components/ExerciseFigure'
 import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
 
-let savedGroup: (typeof GROUPS)[number] = '全部'
+let savedGroup: Filter = '全部'
 let savedQuery = ''
 
 export default function Library() {
-  const [group, setGroup] = useState<(typeof GROUPS)[number]>(savedGroup)
+  const [group, setGroup] = useState<Filter>(savedGroup)
   const [q, setQ] = useState(savedQuery)
   savedGroup = group
   savedQuery = q
@@ -19,14 +19,14 @@ export default function Library() {
     const s = q.trim().toLowerCase()
     return EXERCISES.filter(
       (e) =>
-        (group === '全部' || e.group === group) &&
+        matchFilter(e, group) &&
         (!s || e.name.includes(s) || e.en.toLowerCase().includes(s) || e.muscles.some((m) => m.includes(s))),
     )
   }, [group, q])
 
   return (
     <div className="page">
-      <PageHeader title="動作庫" subtitle={`${EXERCISES.length} 個徒手動作，不需器材`} />
+      <PageHeader title="動作庫" subtitle={`${EXERCISES.length} 個徒手動作（含 ${AERO_COUNT} 個瘦身操），不需器材`} />
       <div className="search">
         <Icon name="search" size={18} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜尋動作或部位，例如：胸、深蹲" enterKeyHint="search" />
@@ -39,8 +39,8 @@ export default function Library() {
         </AnimatePresence>
       </div>
       <div className="chips">
-        {GROUPS.map((g) => (
-          <button key={g} className={`chip-btn ${g === group ? 'active' : ''}`} onClick={() => setGroup(g)}>
+        {FILTERS.map((g) => (
+          <button key={g} className={`chip-btn ${g === group ? 'active' : ''} ${g === '瘦身操' || g === '安靜不跳' ? 'aero' : ''}`} onClick={() => setGroup(g)}>
             {g === group && <motion.span layoutId="chip-pill" className="chip-pill" transition={{ type: 'spring', stiffness: 500, damping: 36 }} />}
             <span>{g}</span>
           </button>
@@ -62,11 +62,12 @@ export default function Library() {
             >
               <div className="ex-card-fig">
                 <ExerciseFigure demo={e.demo} />
+                {e.quiet && <span className="quiet-badge">安靜</span>}
               </div>
               <div className="ex-card-body">
                 <h3>{e.name}</h3>
                 <div className="ex-card-meta">
-                  <span className="tag">{e.group}</span>
+                  {e.cat === 'aero' ? <span className="tag aero">瘦身操</span> : <span className="tag">{e.group}</span>}
                   <Difficulty level={e.difficulty} />
                 </div>
                 <span className="ex-card-target">{e.type === 'reps' ? `${e.defaultReps} 下` : `${e.defaultSeconds} 秒`}</span>
@@ -75,6 +76,11 @@ export default function Library() {
           ))}
         </AnimatePresence>
       </motion.div>
+      {group === '瘦身操' && list.length > 0 && (
+        <motion.p className="aero-note" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          標「安靜」的動作完全不跳躍，住公寓也不怕吵到鄰居。
+        </motion.p>
+      )}
       {list.length === 0 && <Empty icon={<Icon name="search" size={34} />} title="找不到動作" text="換個關鍵字試試看" />}
     </div>
   )

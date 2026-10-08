@@ -239,6 +239,8 @@ const F_FORE: MDef[] = [
 const F_THIGH: MDef[] = [
   { n: 'add', ids: ['adductors'], a: [-0.05, -3.7], b: [0.62, -3.0], w: [2.4, 2.4, 0.6], sk: -0.2 },
   { n: 'vl', ids: ['quads'], a: [-0.2, 3.7], b: [0.97, 2.0], w: [0.9, 3.2, 1.3], sk: 0.7 },
+  // gluteus medius / TFL: the hip abductor seen from the front, at the outer hip
+  { n: 'gmd', ids: ['glutes'], a: [-0.24, 4.3], b: [0.22, 4.6], w: [1.5, 2.0, 0.6], sk: 0.4 },
   { n: 'rf', ids: ['quads', 'hipFlexors'], a: [-0.12, 1.0], b: [0.9, 0.0], w: [0.8, 2.6, 1.2] },
   { n: 'vm', ids: ['quads'], a: [0.5, -2.7], b: [0.99, -1.1], w: [1.0, 2.1, 1.2], sk: -0.4 },
   { n: 'pat', ids: [], a: [0.96, 0.0], b: [1.09, 0.0], w: [1.2, 1.4, 1.1] },
