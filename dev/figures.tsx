@@ -22,6 +22,22 @@ createRoot(document.getElementById('root')!).render(
   </div>,
 )
 
+// ---- loop length per demo (ms) for the capture scripts ----
+declare global {
+  interface Window {
+    __meta: () => Record<string, { total: number; still: number; front: boolean }>
+  }
+}
+window.__meta = () =>
+  Object.fromEntries(
+    Object.entries(DEMOS).map(([k, d]) => {
+      const durs = d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur))
+      const total = durs.reduce((a, b) => a + b, 0)
+      const s = d.still ?? (d.keys.length > 1 ? 1 : 0)
+      return [k, { total, still: durs.slice(0, s).reduce((a, b) => a + b, 0) / total, front: !!d.front }]
+    }),
+  )
+
 // ---- numeric probe used by the screenshot scripts ----
 import { Rig } from '../src/components/figure/rig'
 import { drawFrame, groundClamp } from '../src/components/figure/draw'
@@ -40,8 +56,8 @@ window.__probe = () => {
   svg.appendChild(path)
   const res: Record<string, unknown> = {}
   for (const [name, d] of Object.entries(DEMOS)) {
-    const rig = new Rig(d.keys, d.front)
     const durs = d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur))
+    const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag })
     let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity, miss = 0
     const keyInfo: string[] = []
     for (let i = 0; i < d.keys.length; i++) {
@@ -85,15 +101,8 @@ declare global {
 }
 window.__hip = (k, phase) => {
   const d = DEMOS[k as DemoKey]
-  const rig = new Rig(d.keys, d.front)
   const durs = d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur))
-  const total = durs.reduce((a, b) => a + b, 0)
-  let t = (((phase % 1) + 1) % 1) * total
-  let i = 0
-  while (i < durs.length - 1 && t >= durs[i]) {
-    t -= durs[i]
-    i++
-  }
-  const fr = groundClamp(rig.pose(i, Math.min(1, t / durs[i])), 128)
+  const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag })
+  const fr = groundClamp(rig.at(phase), 128)
   return fr.p
 }

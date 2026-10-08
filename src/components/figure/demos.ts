@@ -17,6 +17,12 @@ export interface Demo {
   headFront?: boolean
   /** camera framing [x, y, width] (height keeps the 200:154 aspect); default shows the full 0,-14,200,154 stage */
   view?: [number, number, number]
+  /** continuous (monotone cubic) interpolation through the keys instead of easing in/out of every key */
+  smooth?: boolean
+  /** arms trail the body by this loop fraction (follow-through) */
+  lag?: number
+  /** head trails the body by this loop fraction */
+  headLag?: number
 }
 const view = (cx: number, w = 142): [number, number, number] => [+Math.max(0, Math.min(200 - w, cx - w / 2)).toFixed(1), +(138 - w * 0.77).toFixed(1), w]
 

@@ -31,8 +31,8 @@ export interface HipSkin {
 }
 
 export function hipSkin(fr: Frame, lb: LimbOut): HipSkin {
-  const ex: V = fr.front ? [fr.fwd[0] * lb.fc, fr.fwd[1] * lb.fc] : fr.fwd
-  const ey = fr.axis
+  const ex: V = fr.front ? [fr.pFwd[0] * lb.fc, fr.pFwd[1] * lb.fc] : fr.fwd
+  const ey = fr.front ? fr.pAxis : fr.axis
   const u = dir(lb.ua, lb.fc)
   const ux = u[0] * ex[0] + u[1] * ex[1]
   const uy = u[0] * ey[0] + u[1] * ey[1]

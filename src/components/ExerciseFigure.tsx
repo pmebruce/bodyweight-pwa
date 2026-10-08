@@ -81,7 +81,8 @@ function buildSpec(front: boolean, headFront: boolean, tg: Targets, lite: boolea
 
 export default function ExerciseFigure({ demo, size = '100%', playing = true, speed = 1, className, phase, highlight = true }: Props) {
   const d = DEMOS[demo]
-  const rig = useMemo(() => new Rig(d.keys, d.front), [d])
+  const durs = useMemo(() => d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur)), [d])
+  const rig = useMemo(() => new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag }), [d, durs])
   const tg = TARGETS[demo]
   // thumbnails (< 180 px wide) use a lighter element tree: merged muscles per segment, no fibres
   const [lite, setLite] = useState(false)
@@ -91,7 +92,6 @@ export default function ExerciseFigure({ demo, size = '100%', playing = true, sp
     setLite(w > 0 && w < 180)
   }, [])
   const spec = useMemo(() => buildSpec(!!d.front, !!d.headFront, highlight ? tg : NO_TARGETS, lite), [d, tg, highlight, lite])
-  const durs = useMemo(() => d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur)), [d])
   const shadowRef = useRef<SVGEllipseElement>(null)
   /** loop position 0–1, kept across pause / speed changes */
   const posRef = useRef<number | null>(null)
@@ -103,13 +103,7 @@ export default function ExerciseFigure({ demo, size = '100%', playing = true, sp
     const total = durs.reduce((a, b) => a + b, 0)
     const last: string[] = []
     const draw = (pos: number) => {
-      let t = (((pos % 1) + 1) % 1) * total
-      let i = 0
-      while (i < durs.length - 1 && t >= durs[i]) {
-        t -= durs[i]
-        i++
-      }
-      const fr = groundClamp(rig.pose(i, Math.min(1, t / durs[i])), GROUND)
+      const fr = groundClamp(rig.at(pos), GROUND)
       const out = drawFrame(fr, spec.fib)
       for (let j = 0; j < els.length; j++) {
         const ks = keys[j]

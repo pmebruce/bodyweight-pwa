@@ -317,8 +317,30 @@ function joinSides(a: V[], b: V[]): string {
   return `M${pt(a[0])}${curve(a)}L${pt(b[0])}${curve(b)}Z`
 }
 
+/**
+ * front view: the pelvis can roll independently of the ribcage (hip drop / weight shift). Points of the
+ * torso are rotated about the hip centre by the pelvis-vs-torso angle, fading out up the waist.
+ */
+function spineWarp(fr: Frame): ((p: V) => V) | undefined {
+  if (!fr.front) return undefined
+  const dd = (fr.pa - fr.T) * (Math.PI / 180)
+  if (Math.abs(dd) < 1e-4) return undefined
+  return (q: V): V => {
+    const vx = q[0] - fr.p[0]
+    const vy = q[1] - fr.p[1]
+    const s = (vx * fr.axis[0] + vy * fr.axis[1]) / L.torso
+    const t = Math.min(1, Math.max(0, (0.62 - s) / 0.52))
+    const a = dd * t * t * (3 - 2 * t)
+    const c = Math.cos(a)
+    const sn = Math.sin(a)
+    return [fr.p[0] + vx * c + vy * sn, fr.p[1] - vx * sn + vy * c]
+  }
+}
+
 function torsoPiece(fr: Frame, s0: number, s1: number): string {
-  const W = (q: V): V => add(add(fr.p, fr.axis, q[0] * L.torso), fr.fwd, q[1])
+  const wp = spineWarp(fr)
+  const W0 = (q: V): V => add(add(fr.p, fr.axis, q[0] * L.torso), fr.fwd, q[1])
+  const W = wp ? (q: V): V => wp(W0(q)) : W0
   if (fr.front) {
     const right = sampleSide([...FRONT_HALF], s0, s1).map(W)
     const left = sampleSide([...FRONT_HALF].reverse(), s0, s1).map(([s, w]) => W([s, -w]))
@@ -346,6 +368,8 @@ function ellipse(c: V, ax: V, ay: V, rx: number, ry: number): string {
 }
 
 /* ---------- bare feet / hands ---------- */
+/** front view: extra foot length (fraction) when fully up on the toes */
+export const TOE_STRETCH = 0.75
 // side: x along the foot (toward toes), y toward the sole
 export const FOOT_SIDE: V[] = [
   [-1.5, -2.3], [-2.6, -0.2], [-2.9, 2.2], [-2.3, 3.9], [-1.0, 4.5], [2.6, 4.1], [6.6, 4.5], [10.0, 4.5], [11.9, 3.9], [12.3, 3.0], [11.4, 2.1], [8.4, 1.2], [4.8, -0.5], [1.8, -2.4],
@@ -486,10 +510,13 @@ function limbParts(fr: Frame, lb: LimbOut, arm: boolean, out: Parts, pre: string
     if (front) {
       const D = dir(lb.ea - 90, lb.fc)
       const X: V = [lb.fc * D[1], -lb.fc * D[0]]
-      const W = (q: V): V => add(add(lb.end, X, q[0]), D, q[1])
+      // up on the toes: seen from the front the instep tilts toward the camera → the foot reads longer
+      const st = 1 + lb.toe * TOE_STRETCH
+      const nw = 1 - lb.toe * 0.08
+      const W = (q: V): V => add(add(lb.end, X, q[0] * nw), D, q[1] > 0 ? q[1] * st : q[1])
       out[pre + 'ft'] = closed(FOOT_FRONT.map(W))
       let t = ''
-      for (const x of [-1.9, -0.6, 0.6, 1.8]) t += `M${pt(W([x * lb.fc * 1, 3.5]))}L${pt(W([x * lb.fc * 1.02, 4.5]))}`
+      for (const x of [-1.9, -0.6, 0.6, 1.8]) t += `M${pt(W([x * lb.fc * 1, 4.6 - 1.1 / st]))}L${pt(W([x * lb.fc * 1.02, 4.5]))}`
       out[pre + '.toe'] = t
     } else {
       const U = dir(lb.ea, lb.fc)
@@ -512,12 +539,13 @@ export function drawFrame(fr: Frame, fib: Set<string> = new Set()): Parts {
   out.torso = torsoPiece(fr, fr.front ? 0.0 : 0.14, 1.1)
   out.tclip = out.torso + out.lNhp + (fr.front ? out.lFhp : '')
   const gt: Seg = { o: fr.p, u: fr.axis, n: fr.fwd, l: L.torso }
-  muscles(out, 't', gt, tables(fr.front).torso, fib)
-  const W = (s: number, w: number) => at(gt, s * L.torso, w)
+  const wp = spineWarp(fr)
+  muscles(out, 't', gt, tables(fr.front).torso, fib, 1, wp)
+  const W = wp ? (s: number, w: number) => wp(at(gt, s * L.torso, w)) : (s: number, w: number) => at(gt, s * L.torso, w)
   if (fr.front) {
     // inguinal V lines + navel
     out['t.ln'] =
-      open([W(0.2, 6.6), W(0.06, 5.2), W(-0.1, 2.6)]) + open([W(0.2, -6.6), W(0.06, -5.2), W(-0.1, -2.6)]) + ellipse(W(0.13, 0), gt.u, gt.n, 0.35, 0.3)
+      open([W(0.2, 6.6), W(0.06, 5.2), W(-0.1, 2.6)]) + open([W(0.2, -6.6), W(0.06, -5.2), W(-0.1, -2.6)]) + ellipse(W(0.13, 0), wp ? fr.pAxis : gt.u, wp ? fr.pFwd : gt.n, 0.35, 0.3)
   } else {
     // spine groove of the hip / ribcage edge
     out['t.ln'] = open([W(0.66, 6.2), W(0.6, 3.6), W(0.64, 1.2)])
@@ -557,7 +585,7 @@ export function groundClamp(fr: Frame, ground: number): Frame {
     low = Math.max(low, lb.mid[1] + 4.2)
     if (fr.front) {
       const D = dir(lb.ea - 90, lb.fc)
-      low = Math.max(low, lb.end[1] + D[1] * 4.6 + 1)
+      low = Math.max(low, lb.end[1] + D[1] * 4.6 * (1 + lb.toe * TOE_STRETCH) + 1)
     } else {
       const U = dir(lb.ea, lb.fc)
       const Vv: V = [-lb.fc * U[1], lb.fc * U[0]]
