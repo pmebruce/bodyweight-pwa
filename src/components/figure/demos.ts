@@ -145,11 +145,11 @@ const hulaHalf: Key[] = [
 const SLG_W = hipY(100, 180, FLAT(129), FLAT(71), 0.6)
 /** hands clasped in front of the chest: upper arms forward and a little across, forearms up toward the camera */
 const SLG_ARM: LimbKey = { a: -16, f: 35, k: 95, b: 34, e: 180, rel: true }
-const SLG_CL = (_p: V, _T = 180): Pick<Key, 'armN' | 'armF'> => ({ armN: { ...SLG_ARM }, armF: { ...SLG_ARM } })
+const SLG_CL = (): Pick<Key, 'armN' | 'armF'> => ({ armN: { ...SLG_ARM }, armF: { ...SLG_ARM } })
 const sidelungeHalf: Key[] = [
-  k([100, SLG_W], 180, { ...SLG_CL([100, SLG_W]), legN: ff(129), legF: ff(71) }, { pa: 180, n: 0 }),
+  k([100, SLG_W], 180, { ...SLG_CL(), legN: ff(129), legF: ff(71) }, { pa: 180, n: 0 }),
   // sit into the right leg: knee bends out over the toes, left leg long, hips drop and travel right
-  k([115.5, 90], 183, { ...SLG_CL([115.5, 90], 183), legN: { ...ff(129), pole: 1.25 }, legF: ff(71) }, { pa: 181.5, n: -3 }),
+  k([115.5, 90], 183, { ...SLG_CL(), legN: { ...ff(129), pole: 1.25 }, legF: ff(71) }, { pa: 181.5, n: -3 }),
 ]
 
 /* ---- 滑雪跳 (ski hop) ---- */
@@ -578,6 +578,7 @@ export const DEMOS: Record<DemoKey, Demo> = {
     headLag: 0.02,
     keys: sym(skihopHalf),
     dur: [210, 190, 210, 190],
+    still: 0,
   },
 
   // 站姿側彎: one arm reaches over the head; the ribcage bends while the pelvis stays level and the hips
