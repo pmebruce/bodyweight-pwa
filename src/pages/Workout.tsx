@@ -5,7 +5,7 @@ import { uid, useStore } from '../lib/store'
 import { resolvePlan, itemTarget } from '../lib/plan'
 import { EX_MAP } from '../data/exercises'
 import type { Exercise, Plan, WorkoutLog } from '../types'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import Ring from '../components/Ring'
 import CountUp from '../components/CountUp'
 import Icon from '../components/Icon'
@@ -416,7 +416,7 @@ function ReadyView({ plan, onStart }: { plan: Plan; onStart: () => void }) {
   return (
     <motion.div className="wk-step wk-ready" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
       <div className="wk-fig big">
-        <StickFigure demo={first.demo} />
+        <ExerciseFigure demo={first.demo} />
       </div>
       <h1 className="wk-name">準備好了嗎？</h1>
       <p className="wk-sub">
@@ -479,7 +479,7 @@ function WorkView({ step, leftMs, frac, onComplete, paused }: { step: WorkStep; 
       </div>
       <h1 className="wk-name">{step.ex.name}</h1>
       <div className="wk-fig">
-        <StickFigure demo={step.ex.demo} playing={!paused} />
+        <ExerciseFigure demo={step.ex.demo} playing={!paused} />
       </div>
       {step.seconds ? (
         <Ring progress={1 - frac} size={size} id="ring-work">
@@ -542,7 +542,7 @@ function RestView({ kind, next, leftMs, frac, onAdd, onSkip }: { kind: 'rest' | 
       )}
       <div className="wk-next">
         <div className="wk-next-fig">
-          <StickFigure demo={next.ex.demo} />
+          <ExerciseFigure demo={next.ex.demo} />
         </div>
         <div>
           <span className="wk-next-label">下一個</span>

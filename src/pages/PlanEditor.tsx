@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { uid, useStore } from '../lib/store'
 import type { Exercise, Plan, PlanItem } from '../types'
 import { EXERCISES, EX_MAP, GROUPS } from '../data/exercises'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import { Sheet, Stepper, toast, useConfirm } from '../components/ui'
 import Icon from '../components/Icon'
 import { goBack, navigate } from '../lib/router'
@@ -163,7 +163,7 @@ function EditRow({ row, onChange, onRemove }: { row: Row; onChange: (p: Partial<
             <Icon name="grip" size={20} stroke={3} />
           </button>
           <div className="item-fig small">
-            <StickFigure demo={ex.demo} playing={false} />
+            <ExerciseFigure demo={ex.demo} playing={false} />
           </div>
           <h3>{ex.name}</h3>
           <div className="seg">
@@ -223,7 +223,7 @@ function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClose: () 
         {list.map((e) => (
           <motion.li key={e.id} whileTap={{ scale: 0.97 }} onClick={() => onPick(e)}>
             <div className="item-fig small">
-              <StickFigure demo={e.demo} playing={false} />
+              <ExerciseFigure demo={e.demo} playing={false} />
             </div>
             <div className="item-text">
               <h3>{e.name}</h3>

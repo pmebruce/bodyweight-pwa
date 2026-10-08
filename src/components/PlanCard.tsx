@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import type { Plan } from '../types'
 import { planEstimate } from '../lib/stats'
 import { EX_MAP } from '../data/exercises'
-import StickFigure from './StickFigure'
+import ExerciseFigure from './ExerciseFigure'
 import Icon from './Icon'
 import { navigate } from '../lib/router'
 
@@ -37,7 +37,7 @@ export default function PlanCard({ plan, index = 0 }: { plan: Plan; index?: numb
       </div>
       {first && (
         <div className="plan-card-fig">
-          <StickFigure demo={first.demo} />
+          <ExerciseFigure demo={first.demo} />
         </div>
       )}
     </motion.button>

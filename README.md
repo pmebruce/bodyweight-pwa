@@ -3,7 +3,7 @@
 不需器材的徒手健身 Progressive Web App（繁體中文）。Vite + React + TypeScript + Framer Motion + vite-plugin-pwa。
 
 ## 功能
-- 動作庫：20 個徒手動作，含部位、難度、動作要點與 SVG 火柴人循環動畫；可依部位篩選、搜尋
+- 動作庫：20 個徒手動作，含部位、難度、動作要點與 SVG 人形循環示範動畫（骨架關鍵影格 + 正向/反向運動學，有頭髮、T 恤、短褲、球鞋與陰影，支援深色模式、0.5× 慢速與「減少動態效果」）；可依部位篩選、搜尋
 - 訓練計畫：4 個內建計畫（新手全身、核心強化、下肢燃脂、7 分鐘 HIIT）＋自訂計畫（新增 / 編輯 / 拖曳排序 / 刪除 / 複製內建計畫）
 - 訓練進行中：倒數圓環、組數、次數點擊完成、休息計時（+10 秒 / 跳過）、暫停 / 上一個 / 跳過、進度條、轉場動畫、中文語音提示、嗶聲、震動（支援的裝置）、螢幕常亮（Wake Lock）、完成彩帶與總結
 - 訓練紀錄：本週次數、連續天數、總分鐘、本週長條圖、歷史清單
@@ -18,6 +18,9 @@ npm run build      # 型別檢查 + 產生 dist/
 npm run preview    # 預覽 production build（port 4173）
 node scripts/gen-icons.mjs   # 重新產生 PWA / apple-touch 圖示
 ```
+
+示範動畫程式在 `src/components/figure/`：`rig.ts`（骨架、FK/IK、關鍵影格插值）、`draw.ts`（身體形狀）、`demos.ts`（20 個動作的關鍵影格）。
+開發時可開 `http://localhost:5173/bodyweight-pwa/dev/figures.html?phases=0,0.5` 一次檢查所有動作的姿勢（只在 dev server 有，不會打包進正式版）。
 
 ## 部署（GitHub Pages）
 網址：https://pmebruce.github.io/bodyweight-pwa/

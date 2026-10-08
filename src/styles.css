@@ -385,3 +385,44 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ---------- exercise demo figure ---------- */
+.fig {
+  --fig-skin: #f0c09b;
+  --fig-skin-shade: #d9a07a;
+  --fig-hair: #2f2522;
+  --fig-shirt: var(--accent);
+  --fig-shirt2: var(--accent2);
+  --fig-shorts: #2d3350;
+  --fig-shoe: #383d52;
+  --fig-sole: #f2f2f6;
+  --fig-shadow: rgba(20, 20, 40, 0.28);
+  --fig-shirt-far: color-mix(in srgb, var(--fig-shirt) 74%, #000);
+  --fig-shirt2-far: color-mix(in srgb, var(--fig-shirt2) 74%, #000);
+}
+.fig .sk { fill: var(--fig-skin); }
+.fig .nk { fill: var(--fig-skin-shade); }
+.fig .hr { fill: var(--fig-hair); }
+.fig .ey { fill: #2a211e; }
+.fig .sd { fill: #000; opacity: 0.09; }
+.fig .so { fill: var(--fig-shorts); }
+.fig .fo { fill: var(--fig-shoe); }
+.fig .fs { fill: var(--fig-sole); }
+.fig .sk.far { fill: color-mix(in srgb, var(--fig-skin) 80%, #5a2e1e); }
+.fig .so.far { fill: color-mix(in srgb, var(--fig-shorts) 78%, #000); }
+.fig .fo.far { fill: color-mix(in srgb, var(--fig-shoe) 78%, #000); }
+.fig .fs.far { fill: color-mix(in srgb, var(--fig-sole) 75%, #000); }
+.fig-ground { stroke: var(--line-strong); stroke-width: 2; stroke-linecap: round; }
+.fig-prop { fill: var(--fig-prop, color-mix(in srgb, var(--text) 22%, transparent)); }
+.fig-prop .fig-prop-edge { fill: color-mix(in srgb, var(--text) 10%, transparent); }
+@media (prefers-color-scheme: dark) {
+  .fig {
+    --fig-hair: #4a372d;
+    --fig-shorts: #4b557d;
+    --fig-shoe: #e6e7ee;
+    --fig-sole: #8c92a8;
+    --fig-shadow: rgba(0, 0, 0, 0.6);
+  }
+}
+.workout .fig { --fig-hair: #4a372d; --fig-shorts: #4b557d; --fig-shoe: #e6e7ee; --fig-sole: #8c92a8; --fig-shadow: rgba(0, 0, 0, 0.6); }
+.hero-fig .fig, .plan-card-fig .fig { --fig-shirt: #ffffff; --fig-shirt2: #eceef6; --fig-shorts: #2d3350; --fig-shoe: #2d3350; --fig-sole: #ffffff; --fig-shadow: rgba(0, 0, 0, 0.22); --fig-prop: rgba(255, 255, 255, 0.4); }

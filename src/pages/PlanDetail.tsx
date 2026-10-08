@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useStore } from '../lib/store'
 import { planEstimate } from '../lib/stats'
 import { EX_MAP } from '../data/exercises'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import { Empty, PageHeader, toast, useConfirm } from '../components/ui'
 import Icon from '../components/Icon'
 import { goBack, navigate } from '../lib/router'
@@ -78,7 +78,7 @@ export default function PlanDetail({ id }: { id: string }) {
           return (
             <motion.li key={i} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 + i * 0.04 }} onClick={() => navigate(`/exercise/${ex.id}`)}>
               <div className="item-fig">
-                <StickFigure demo={ex.demo} />
+                <ExerciseFigure demo={ex.demo} />
               </div>
               <div className="item-text">
                 <h3>{ex.name}</h3>

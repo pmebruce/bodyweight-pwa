@@ -7,7 +7,7 @@ import { EX_MAP } from '../data/exercises'
 import { Empty, PageHeader, toast, useConfirm } from '../components/ui'
 import CountUp from '../components/CountUp'
 import Icon from '../components/Icon'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import { navigate } from '../lib/router'
 
 export default function History() {
@@ -79,7 +79,7 @@ export default function History() {
       <h2 className="section-title">歷史紀錄</h2>
       {data.history.length === 0 ? (
         <Empty
-          icon={<div style={{ width: 120 }}><StickFigure demo="jack" /></div>}
+          icon={<div style={{ width: 120 }}><ExerciseFigure demo="jack" /></div>}
           title="還沒有訓練紀錄"
           text="完成第一次訓練後，紀錄就會出現在這裡。"
           action={

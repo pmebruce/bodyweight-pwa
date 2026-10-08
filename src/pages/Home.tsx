@@ -4,7 +4,7 @@ import { computeStats, planEstimate } from '../lib/stats'
 import { greeting, weekdayLabel } from '../lib/format'
 import { navigate } from '../lib/router'
 import PlanCard, { planGradient } from '../components/PlanCard'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import Icon from '../components/Icon'
 import { EX_MAP } from '../data/exercises'
 
@@ -53,7 +53,7 @@ export default function Home() {
           </motion.button>
         </div>
         <div className="hero-fig">
-          <StickFigure demo={EX_MAP[suggested.items[0]?.exerciseId]?.demo ?? 'jack'} />
+          <ExerciseFigure demo={EX_MAP[suggested.items[0]?.exerciseId]?.demo ?? 'jack'} />
         </div>
       </motion.section>
 

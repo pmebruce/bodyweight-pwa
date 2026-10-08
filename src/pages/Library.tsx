@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { EXERCISES, GROUPS } from '../data/exercises'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
@@ -61,7 +61,7 @@ export default function Library() {
               onClick={() => navigate(`/exercise/${e.id}`)}
             >
               <div className="ex-card-fig">
-                <StickFigure demo={e.demo} />
+                <ExerciseFigure demo={e.demo} />
               </div>
               <div className="ex-card-body">
                 <h3>{e.name}</h3>

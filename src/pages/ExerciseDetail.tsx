@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { DIFF_LABEL, EX_MAP } from '../data/exercises'
-import StickFigure from '../components/StickFigure'
+import ExerciseFigure from '../components/ExerciseFigure'
 import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
@@ -14,7 +14,7 @@ export default function ExerciseDetail({ id }: { id: string }) {
     <div className="page with-cta">
       <PageHeader title={ex.name} subtitle={ex.en} back="/library" />
       <motion.div className="demo-stage" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}>
-        <StickFigure demo={ex.demo} speed={slow ? 0.5 : 1} />
+        <ExerciseFigure demo={ex.demo} speed={slow ? 0.5 : 1} />
         <button className="speed-btn" onClick={() => setSlow((s) => !s)}>
           {slow ? '0.5×' : '1×'} 速度
         </button>
