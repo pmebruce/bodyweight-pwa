@@ -8,6 +8,7 @@
  *   front view: limbs w > 0 = lateral,   torso w > 0 = screen right (mirrored for the left side)
  */
 import type { MuscleId } from './anatomy'
+import { GLUTE_MAX, GLUTE_MED, GLUTE_MIN, HIP_FRONT, HIP_SIDE, hipSkin, skin, skinThigh, type HipSkin, type Patch } from './hip'
 import { add, dir, L, len, sub, type Frame, type LimbOut, type V } from './rig'
 
 /** fast 1-decimal number formatting (float → string is the hot spot of the per-frame path building) */
@@ -114,7 +115,7 @@ interface MDef {
 const mirror = (m: MDef, n: string): MDef => ({ ...m, n, a: [m.a[0], -m.a[1]], b: [m.b[0], -m.b[1]], sk: -(m.sk ?? 0) })
 
 const FIB_K = [-0.6, -0.2, 0.2, 0.6]
-function spindle(g: Seg, m: MDef, scaleT: number, fib: boolean): [string, string] {
+function spindle(g: Seg, m: MDef, scaleT: number, fib: boolean, map?: (p: V) => V): [string, string] {
   const A: V = [m.a[0] * g.l * scaleT, m.a[1]]
   const B: V = [m.b[0] * g.l * scaleT, m.b[1]]
   const d = sub(B, A)
@@ -126,8 +127,8 @@ function spindle(g: Seg, m: MDef, scaleT: number, fib: boolean): [string, string
   const sk = m.sk ?? 0
   const hw = (f: number) => (1 - f) * (1 - f) * w0 + 2 * f * (1 - f) * c + f * f * w1
   const ctr = (f: number): V => add(add(A, d, f), nx, sk * Math.sin(Math.PI * f))
-  const W = (q: V) => at(g, q[0], q[1])
-  const N = 4
+  const W = map ? (q: V) => map(at(g, q[0], q[1])) : (q: V) => at(g, q[0], q[1])
+  const N = map ? 6 : 4
   const left: V[] = []
   const right: V[] = []
   for (let i = 0; i <= N; i++) {
@@ -150,6 +151,56 @@ function spindle(g: Seg, m: MDef, scaleT: number, fib: boolean): [string, string
   return [outline, fd]
 }
 
+/* ---------- skinned muscle patches (hip) ---------- */
+/** point at fraction t along a polyline */
+function along(ps: V[], t: number): V {
+  const f = Math.max(0, Math.min(1, t)) * (ps.length - 1)
+  const i = Math.min(ps.length - 2, Math.floor(f))
+  const k = f - i
+  return [ps[i][0] + (ps[i + 1][0] - ps[i][0]) * k, ps[i][1] + (ps[i + 1][1] - ps[i][1]) * k]
+}
+const lerpV = (a: V, b: V, k: number): V => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]
+const PATCH_T = [0, 0.2, 0.4, 0.6, 0.8, 1]
+const PATCH_FIB = [0.1, 0.26, 0.42, 0.58, 0.74, 0.9]
+function patch(sk: HipSkin, m: Patch, fib: boolean): [string, string] {
+  // every sample carries its own blend weight: origin edge (pelvis) → insertion edge (femur)
+  type P3 = [number, number, number]
+  const lw = (w: [number, number], t: number) => w[0] + (w[1] - w[0]) * t
+  const oAt = (t: number): P3 => [...along(m.o, t), lw(m.wo, t)]
+  const iAt = (t: number): P3 => [...along(m.i, t), lw(m.wi, t)]
+  const mix = (a: P3, b: P3, k: number): P3 => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]
+  const S = (q: P3) => skin(sk, [q[0], q[1]], q[2])
+  /** point at fraction k along the fibre a → b: rotation skinning far from the joint, the straight
+   * attachment line close to it (pure angle blending would swirl the tissue around the pivot) */
+  const F = (a: P3, b: P3, k: number): V => {
+    const q = mix(a, b, k)
+    const r = S(q)
+    const rr = Math.hypot(q[0], q[1])
+    const lin = m.lin ?? 1 - Math.min(1, Math.max(0, (rr - 3.5) / 4.5))
+    if (!lin) return r
+    const A = S(a)
+    const B = S(b)
+    const l: V = [A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k]
+    return [r[0] + (l[0] - r[0]) * lin, r[1] + (l[1] - r[1]) * lin]
+  }
+  const O = PATCH_T.map(oAt)
+  const I = PATCH_T.map(iAt)
+  const n = O.length - 1
+  const ring: V[] = [
+    ...O.map(S), F(O[n], I[n], 0.33), F(O[n], I[n], 0.66), ...[...I].reverse().map(S),
+    ...[0.25, 0.5, 0.75].map((k) => (m.top ? lerpV(S(I[0]), S(O[0]), k) : F(I[0], O[0], k))),
+  ]
+  const outline = closed(ring)
+  if (!fib || m.nofib) return [outline, '']
+  let fd = ''
+  for (const t of PATCH_FIB) {
+    const a = oAt(t)
+    const b = iAt(t)
+    fd += open([0.06, 0.24, 0.42, 0.6, 0.78, 0.94].map((k) => F(a, b, k)))
+  }
+  return [outline, fd]
+}
+
 /* ---------- muscle tables ---------- */
 // Muscles are deliberately a bit oversized: they get clipped to their segment's silhouette, so the
 // visible result is the segment surface divided into muscle regions separated by grooves.
@@ -165,9 +216,9 @@ const S_FORE: MDef[] = [
   { n: 'fx', ids: ['forearm'], a: [-0.12, -1.3], b: [0.92, -0.6], w: [1.9, 1.8, 0.8], sk: -0.3 },
 ]
 const S_THIGH: MDef[] = [
-  { n: 'ham', ids: ['hamstrings'], a: [0.04, 3.6], b: [1.03, 2.0], w: [2.8, 3.0, 1.5], sk: 0.3 },
-  { n: 'vl', ids: ['quads'], a: [0.1, -0.4], b: [0.98, -1.0], w: [2.9, 3.2, 2.0], sk: 0.15 },
-  { n: 'rf', ids: ['quads', 'hipFlexors'], a: [-0.02, -3.8], b: [0.96, -3.1], w: [1.9, 2.4, 1.3], sk: -0.4 },
+  { n: 'ham', ids: ['hamstrings'], a: [0.02, 3.4], b: [1.03, 2.0], w: [2.2, 3.1, 1.5], sk: 0.3 },
+  { n: 'vl', ids: ['quads'], a: [-0.1, 0.2], b: [0.98, -1.0], w: [2.6, 3.4, 2.0], sk: 0.15 },
+  { n: 'rf', ids: ['quads', 'hipFlexors'], a: [-0.08, -3.5], b: [0.96, -3.1], w: [0.9, 2.6, 1.3], sk: -0.4 },
   { n: 'pat', ids: [], a: [0.98, -3.6], b: [1.09, -3.3], w: [0.8, 1.0, 0.7] },
 ]
 const S_SHIN: MDef[] = [
@@ -187,8 +238,8 @@ const F_FORE: MDef[] = [
 ]
 const F_THIGH: MDef[] = [
   { n: 'add', ids: ['adductors'], a: [-0.05, -3.7], b: [0.62, -3.0], w: [2.4, 2.4, 0.6], sk: -0.2 },
-  { n: 'vl', ids: ['quads'], a: [0.06, 3.5], b: [0.97, 2.0], w: [2.4, 2.8, 1.3], sk: 0.3 },
-  { n: 'rf', ids: ['quads', 'hipFlexors'], a: [-0.02, 0.5], b: [0.9, 0.0], w: [2.0, 2.4, 1.2] },
+  { n: 'vl', ids: ['quads'], a: [-0.2, 3.7], b: [0.97, 2.0], w: [0.9, 3.2, 1.3], sk: 0.7 },
+  { n: 'rf', ids: ['quads', 'hipFlexors'], a: [-0.12, 1.0], b: [0.9, 0.0], w: [0.8, 2.6, 1.2] },
   { n: 'vm', ids: ['quads'], a: [0.5, -2.7], b: [0.99, -1.1], w: [1.0, 2.1, 1.2], sk: -0.4 },
   { n: 'pat', ids: [], a: [0.96, 0.0], b: [1.09, 0.0], w: [1.2, 1.4, 1.1] },
 ]
@@ -209,18 +260,17 @@ const S_TORSO: MDef[] = [
   absSide(3, 0.37, 0.275, 4.1, 4.1, [2.0, 2.1, 2.0]),
   absSide(4, 0.26, 0.06, 4.1, 4.3, [2.0, 2.2, 1.7]),
   { n: 'pec', ids: ['chest'], a: [1.0, 3.4], b: [0.61, 5.0], w: [2.0, 3.3, 2.0], sk: 0.8 },
-  { n: 'glu', ids: ['glutes'], a: [0.2, -3.3], b: [-0.36, -1.6], w: [2.4, 3.5, 2.6], sk: -1.1 },
 ]
 // front view torso, right half (left half mirrored)
 const absFront = (i: number, s0: number, s1: number, wd: [number, number, number]): MDef => ({ n: `ab${i}`, ids: ['abs'], a: [s0, 1.85], b: [s1, 1.85], w: wd })
 const F_TORSO_R: MDef[] = [
   { n: 'trap', ids: ['traps'], a: [1.15, 2.0], b: [1.0, 8.2], w: [1.2, 1.6, 0.7], sk: 0.4 },
-  { n: 'obl', ids: ['obliques'], a: [0.6, 6.4], b: [0.08, 5.7], w: [1.7, 2.3, 1.6], sk: 0.4 },
+  { n: 'obl', ids: ['obliques'], a: [0.6, 6.4], b: [0.0, 4.6], w: [1.7, 2.3, 1.3], sk: 0.5 },
   { n: 'lat', ids: ['lats'], a: [0.95, 10.3], b: [0.42, 7.0], w: [2.3, 2.4, 0.5], sk: 0.5 },
   absFront(1, 0.73, 0.635, [1.5, 1.7, 1.5]),
   absFront(2, 0.62, 0.525, [1.5, 1.7, 1.5]),
   absFront(3, 0.51, 0.415, [1.5, 1.7, 1.45]),
-  absFront(4, 0.4, 0.13, [1.45, 1.65, 1.0]),
+  absFront(4, 0.4, -0.08, [1.45, 1.6, 0.7]),
   { n: 'pec', ids: ['chest'], a: [0.84, 0.35], b: [0.9, 9.2], w: [3.4, 3.8, 1.8], sk: 0.9 },
 ]
 const F_TORSO: MDef[] = F_TORSO_R.flatMap((m) => [mirror(m, m.n + 'L'), { ...m, n: m.n + 'R' }])
@@ -230,7 +280,7 @@ const SIDE_FRONT: V[] = [
   [1.1, 2.6], [1.02, 4.6], [0.9, 6.8], [0.76, 7.6], [0.62, 6.7], [0.44, 5.4], [0.26, 5.3], [0.1, 5.6], [-0.06, 5.5], [-0.22, 4.0],
 ]
 const SIDE_BACK: V[] = [
-  [-0.24, -3.8], [-0.1, -6.1], [0.06, -6.4], [0.22, -5.2], [0.4, -4.8], [0.58, -5.4], [0.76, -6.3], [0.92, -5.9], [1.03, -4.2], [1.1, -2.4],
+  [-0.24, -3.8], [-0.1, -5.6], [0.06, -5.7], [0.22, -5.2], [0.4, -4.8], [0.58, -5.4], [0.76, -6.3], [0.92, -5.9], [1.03, -4.2], [1.1, -2.4],
 ]
 const FRONT_HALF: V[] = [
   [1.1, 3.0], [1.06, 6.4], [1.01, 9.4], [0.92, 10.6], [0.78, 10.1], [0.62, 8.5], [0.46, 7.0], [0.3, 7.1], [0.12, 8.1], [-0.06, 8.6], [-0.22, 8.0],
@@ -330,6 +380,13 @@ const tables = (front: boolean) =>
   front ? { u: F_UPPER, f: F_FORE, t: F_THIGH, s: F_SHIN, torso: F_TORSO } : { u: S_UPPER, f: S_FORE, t: S_THIGH, s: S_SHIN, torso: S_TORSO }
 const mOver = (pre: string, defs: MDef[], clip: string): Over[] => defs.map((m) => ({ k: `${pre}.${m.n}`, kind: 'm', ids: m.ids, clip }))
 
+const HIP_PATCHES_N: [Patch, MuscleId[]][] = [
+  [GLUTE_MIN, ['glutes']],
+  [GLUTE_MED, ['glutes']],
+  [GLUTE_MAX, ['glutes']],
+]
+const HIP_PATCHES_F: [Patch, MuscleId[]][] = [[GLUTE_MAX, ['glutes']]]
+
 export function figureLayers(front: boolean, headFront: boolean): Layer[] {
   const T = tables(front)
   const arm = (s: 'N' | 'F', far: boolean): Layer => ({
@@ -338,9 +395,13 @@ export function figureLayers(front: boolean, headFront: boolean): Layer[] {
     base: [`a${s}f`, `a${s}h`, `a${s}u`],
     over: [...mOver(`a${s}`, T.f, `a${s}f`), ...(front ? [] : [{ k: `a${s}.th`, kind: 'ft' as const, ids: [] }]), ...mOver(`a${s}`, T.u, `a${s}u`)],
   })
-  const legOver = (s: 'N' | 'F') => [...mOver(`l${s}`, T.s, `l${s}s`), { k: `l${s}.toe`, kind: 'ln' as const, ids: [] }, ...mOver(`l${s}`, T.t, `l${s}t`)]
-  const legBase = (s: 'N' | 'F') => [`l${s}s`, `l${s}ft`, `l${s}t`]
-  const torsoOver: Over[] = [...mOver('t', T.torso, 'torso'), { k: 't.ln', kind: 'ln', ids: [], clip: 'torso' }]
+  const shinOver = (s: 'N' | 'F'): Over[] => [...mOver(`l${s}`, T.s, `l${s}s`), { k: `l${s}.toe`, kind: 'ln' as const, ids: [] }]
+  // thigh muscles + glutes are clipped to thigh ∪ hip piece, so they run into the pelvis without a seam
+  const thighOver = (s: 'N' | 'F'): Over[] => mOver(`l${s}`, T.t, `l${s}tc`)
+  const hipOver = (s: 'N' | 'F'): Over[] =>
+    front ? [] : (s === 'N' ? HIP_PATCHES_N : HIP_PATCHES_F).map(([m, ids]) => ({ k: `l${s}.${m.n}`, kind: 'm' as const, ids, clip: `l${s}tc` }))
+  const legBase = (s: 'N' | 'F') => [`l${s}s`, `l${s}ft`, `l${s}t`, `l${s}hp`]
+  const torsoOver: Over[] = [...mOver('t', T.torso, 'tclip'), { k: 't.ln', kind: 'ln', ids: [], clip: 'tclip' }]
   const head: Layer = {
     id: 'hd',
     far: false,
@@ -353,22 +414,33 @@ export function figureLayers(front: boolean, headFront: boolean): Layer[] {
   }
   if (front) {
     return [
-      { id: 'body', far: false, base: [...legBase('F'), ...legBase('N'), 'torso', 'neck'], over: [...legOver('F'), ...legOver('N'), ...torsoOver] },
+      {
+        id: 'body',
+        far: false,
+        base: [...legBase('F'), ...legBase('N'), 'torso', 'neck'],
+        over: [...shinOver('F'), ...thighOver('F'), ...shinOver('N'), ...thighOver('N'), ...torsoOver],
+      },
       head,
       arm('F', false),
       arm('N', false),
     ]
   }
-  const body: Layer = { id: 'body', far: false, base: [...legBase('N'), 'torso', 'neck'], over: [...legOver('N'), ...torsoOver] }
-  const farLeg: Layer = { id: 'lF', far: true, base: legBase('F'), over: legOver('F') }
+  // side view: the near thigh and hip sit in front of the torso → torso muscles first, then thigh, then glutes
+  const body: Layer = {
+    id: 'body',
+    far: false,
+    base: [...legBase('N'), 'torso', 'neck'],
+    over: [...shinOver('N'), ...torsoOver, ...thighOver('N'), ...hipOver('N')],
+  }
+  const farLeg: Layer = { id: 'lF', far: true, base: legBase('F'), over: [...shinOver('F'), ...thighOver('F'), ...hipOver('F')] }
   return headFront ? [arm('F', true), farLeg, body, arm('N', false), head] : [arm('F', true), farLeg, body, head, arm('N', false)]
 }
 
 /* ---------- per-frame geometry ---------- */
-function muscles(out: Parts, pre: string, g: Seg, defs: MDef[], fib: Set<string>, scaleT = 1) {
+function muscles(out: Parts, pre: string, g: Seg, defs: MDef[], fib: Set<string>, scaleT = 1, map?: (p: V) => V) {
   for (const m of defs) {
     const k = `${pre}.${m.n}`
-    const [o, f] = spindle(g, m, scaleT, fib.has(k))
+    const [o, f] = spindle(g, m, scaleT, fib.has(k), map)
     out[k] = o
     if (f) out[k + '~'] = f
   }
@@ -395,7 +467,19 @@ function limbParts(fr: Frame, lb: LimbOut, arm: boolean, out: Parts, pre: string
   } else {
     out[pre + 't'] = limb(lb.root, lb.mid, front ? 5.4 : 6.0, 4.2, 0.7 * s, 1.1 * s, 0.42)
     out[pre + 's'] = limb(lb.mid, lb.end, 4.1, 2.4, 1.6 * s, 0.3 * s, 0.28)
-    muscles(out, pre, segOf(lb.root, lb.mid, sg), T.t, fib)
+    // hip: pelvis ↔ femur blended piece, glutes ride on the same skin
+    const sk = hipSkin(fr, lb)
+    out[pre + 'hp'] = closed((front ? HIP_FRONT : HIP_SIDE).map((q) => skin(sk, q)))
+    out[pre + 'tc'] = out[pre + 't'] + out[pre + 'hp']
+    if (!front) {
+      for (const [m] of pre === 'lN' ? HIP_PATCHES_N : HIP_PATCHES_F) {
+        const k = `${pre}.${m.n}`
+        const [o, f] = patch(sk, m, fib.has(k))
+        out[k] = o
+        if (f) out[k + '~'] = f
+      }
+    }
+    muscles(out, pre, segOf(lb.root, lb.mid, sg), T.t, fib, 1, (p) => skinThigh(sk, p))
     muscles(out, pre, segOf(lb.mid, lb.end, sg), T.s, fib)
     if (front) {
       const D = dir(lb.ea - 90, lb.fc)
@@ -422,7 +506,9 @@ export function drawFrame(fr: Frame, fib: Set<string> = new Set()): Parts {
   limbParts(fr, fr.armF, true, out, 'aF', fib)
   limbParts(fr, fr.legN, false, out, 'lN', fib)
   limbParts(fr, fr.legF, false, out, 'lF', fib)
-  out.torso = torsoPiece(fr, -0.26, 1.1)
+  // the torso stops above the hip joint; the hip pieces (pelvis ↔ thigh skin) cover the pelvis
+  out.torso = torsoPiece(fr, fr.front ? 0.0 : 0.14, 1.1)
+  out.tclip = out.torso + out.lNhp + (fr.front ? out.lFhp : '')
   const gt: Seg = { o: fr.p, u: fr.axis, n: fr.fwd, l: L.torso }
   muscles(out, 't', gt, tables(fr.front).torso, fib)
   const W = (s: number, w: number) => at(gt, s * L.torso, w)

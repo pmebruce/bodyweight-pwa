@@ -76,3 +76,24 @@ window.__probe = () => {
   svg.remove()
   return res
 }
+
+// ---- hip position probe (zoomed hip crops) ----
+declare global {
+  interface Window {
+    __hip: (k: string, phase: number) => [number, number]
+  }
+}
+window.__hip = (k, phase) => {
+  const d = DEMOS[k as DemoKey]
+  const rig = new Rig(d.keys, d.front)
+  const durs = d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur))
+  const total = durs.reduce((a, b) => a + b, 0)
+  let t = (((phase % 1) + 1) % 1) * total
+  let i = 0
+  while (i < durs.length - 1 && t >= durs[i]) {
+    t -= durs[i]
+    i++
+  }
+  const fr = groundClamp(rig.pose(i, Math.min(1, t / durs[i])), 128)
+  return fr.p
+}
