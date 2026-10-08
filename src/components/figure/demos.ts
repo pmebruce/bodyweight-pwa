@@ -195,20 +195,37 @@ const BEHIND_HEAD = { armN: { a: 150, b: 117, fu: 0.7, fs: 0.63, rel: true }, ar
 
 /* ---- 手臂繞圈 (arm circles, 3/4 view) ---- */
 const ARM_YAW = 45
-const AC_PER = 8 // keys per circle
-const AC_STEP = 85 // ms per key → 0.68 s per circle
-const AC_R = 16 // circle radius in degrees at the shoulder (≈ 15 cm at the hand)
+// big circles sweep the hand 44° forward of the T: at 45° yaw the near arm would point straight at the camera
+const AC_YAW = 30
+const AC_PER = 12 // keys per circle
+const AC_STEP = 92 // ms per key → 1.1 s per circle
+const AC_R = 44 // cone half-angle at the shoulder: hand ≈ 39 units (≈ 65 cm) out → circle radius ≈ 27 units ≈ 45 cm
 const AC_STAND = hipY(100, 180, FLAT(108), FLAT(92), 1.3)
 function armCircleKeys(): Key[] {
   const keys: Key[] = []
   const n = AC_PER * 4
+  const R = (AC_R * Math.PI) / 180
   for (let i = 0; i < 2 * n; i++) {
-    // forward circles: hand goes up → forward → down → back; then the same path backwards
+    // forward circles: hand goes top → front → bottom → back; then the same path in reverse
     const ph = (i < n ? i : 2 * n - i) / AC_PER
-    const a = ph * Math.PI * 2
-    const arm: LimbKey = { a: 90 + AC_R * Math.cos(a), f: AC_R * Math.sin(a), k: 4, b: 3, e: 90 + AC_R * Math.cos(a) }
-    const bob = 0.35 * (1 - Math.cos(a)) // tiny dip each time the hands pass the bottom
-    keys.push(k([100, AC_STAND + bob], 180, { armN: { ...arm }, armF: { ...arm }, legN: ff(108), legF: ff(92) }, { pa: 180, sh: 0.5 + 0.35 * Math.cos(a), h: 180 }))
+    const t = ph * Math.PI * 2
+    const c = Math.cos(t)
+    const sn = Math.sin(t)
+    // exact cone around the T-pose axis: [out, down, forward]
+    const d = [Math.cos(R), -Math.sin(R) * c, Math.sin(R) * sn]
+    const a = (Math.atan2(d[0], d[1]) * 180) / Math.PI
+    const f = (Math.asin(d[2]) * 180) / Math.PI
+    const arm: LimbKey = { a, f, k: 4, b: 3, e: a }
+    // knees give a little as the hands sweep down, shoulders shrug up at the top and roll forward in front
+    const bob = 0.7 * (1 - c) * 0.5
+    keys.push(
+      k([100, AC_STAND + bob], 180, { armN: { ...arm }, armF: { ...arm }, legN: ff(108), legF: ff(92) }, {
+        pa: 180,
+        sh: 0.25 + 0.75 * (1 + c),
+        pz: 1.8 * sn,
+        h: 180,
+      }),
+    )
   }
   return keys
 }
@@ -520,9 +537,9 @@ export const DEMOS: Record<DemoKey, Demo> = {
   // 手臂繞圈 (3/4 view): arms straight out at shoulder height, hands draw small circles (4 forward, 4 back);
   // the circle plane faces sideways so the camera sees it as an ellipse
   armcircle: {
-    view: view(100, 150),
+    view: view(100, 176),
     front: true,
-    yaw: ARM_YAW,
+    yaw: AC_YAW,
     smooth: true,
     headLag: 0.01,
     keys: armCircleKeys(),

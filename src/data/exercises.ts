@@ -156,7 +156,7 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'armcircle', name: '手臂繞圈', en: 'Arm Circles', group: '上肢', muscles: ['三角肌', '斜方肌'],
     difficulty: 1, type: 'time', defaultSeconds: 30, kcalPerMin: 3, demo: 'armcircle', cat: 'aero', quiet: true,
-    steps: ['站直，雙腳與肩同寬，膝蓋微彎', '雙手往兩側平舉到肩膀高度，手肘伸直但不鎖死、掌心朝下', '用肩膀帶動，雙手往前畫小圓圈（約 15–20 公分），連續不停', '繞 4 圈後換方向往後繞，肩膀放鬆不要聳肩'],
+    steps: ['站直，雙腳與肩同寬，膝蓋微彎', '雙手往兩側平舉到肩膀高度，手肘伸直但不鎖死', '由肩膀帶動，雙手往前大幅度繞圈（約 40–50 公分），每圈約 1 秒，不要甩太快', '繞 4 圈後換方向往後繞，身體保持穩定、肩膀放鬆'],
     tip: '很適合當熱身，能活動肩關節、讓上半身暖起來。',
   },
   {

@@ -2,8 +2,8 @@ import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState 
 import type { DemoKey } from '../types'
 import { TARGETS, type MuscleId, type Targets } from './figure/anatomy'
 import { DEMOS, GROUND } from './figure/demos'
-import { drawFrame, figureLayers, groundClamp, shadowOf } from './figure/draw'
-import { dir as dirOf, Rig } from './figure/rig'
+import { drawFrame, figureLayers, groundClamp, handCentre, shadowOf } from './figure/draw'
+import { Rig } from './figure/rig'
 
 interface Props {
   demo: DemoKey
@@ -93,18 +93,19 @@ export default function ExerciseFigure({ demo, size = '100%', playing = true, sp
   }, [])
   const spec = useMemo(() => buildSpec(!!d.front, !!d.headFront, highlight ? tg : NO_TARGETS, lite, d.yaw ?? 0), [d, tg, highlight, lite])
   const shadowRef = useRef<SVGEllipseElement>(null)
-  // faint loop traced by each hand (static: the body barely moves), e.g. arm circles
+  // faint loop traced by each hand (e.g. arm circles): sampled from the very frames that are drawn,
+  // at the centre of the drawn hand, so the hand always rides on its trail
   const trail = useMemo(() => {
     if (!d.trail) return null
     const [a, b] = d.trail
+    const N = 72
     const paths: string[] = []
     for (const name of ['armF', 'armN'] as const) {
       const pts: string[] = []
-      for (let i = 0; i <= 32; i++) {
-        const fr = groundClamp(rig.at(a + ((b - a) * i) / 32), GROUND)
-        const l = fr[name]
-        const hd = dirOf(l.ea, l.fc)
-        pts.push(`${(l.end[0] + hd[0] * 3).toFixed(1)} ${(l.end[1] + hd[1] * 3).toFixed(1)}`)
+      for (let i = 0; i < N; i++) {
+        const l = groundClamp(rig.at(a + ((b - a) * i) / N), GROUND)[name]
+        const c = handCentre(l)
+        pts.push(`${c[0].toFixed(2)} ${c[1].toFixed(2)}`)
       }
       paths.push('M' + pts.join('L') + 'Z')
     }

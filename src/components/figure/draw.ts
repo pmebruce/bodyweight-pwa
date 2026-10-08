@@ -484,6 +484,10 @@ const FOOT_FRONT: V[] = [
 const HAND: V[] = [
   [0.1, -1.8], [2.0, -2.1], [3.9, -1.9], [5.3, -1.2], [5.8, -0.1], [5.4, 1.1], [3.9, 1.8], [2.0, 2.1], [0.1, 1.8],
 ]
+/** centre of the drawn hand (palm), e.g. for motion trails */
+export function handCentre(lb: LimbOut): V {
+  return add(lb.end, dir(lb.ea, lb.fc), 0.3 + 3.0)
+}
 
 export interface Parts {
   [k: string]: string

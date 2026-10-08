@@ -60,6 +60,8 @@ export interface Key {
   pa?: number
   /** shoulder elevation (shrug) */
   sh?: number
+  /** front/3/4: shoulder protraction (+ = shoulders roll forward, toward the face direction) */
+  pz?: number
   /** neck angle relative to torso */
   n?: number
   /** absolute head angle (overrides n) */
@@ -122,6 +124,8 @@ export interface LimbOut {
   fu: number
   /** depth of the mid joint / end toward the camera (front view) */
   zm: number
+  /** 3/4: depth of the limb root (shoulder protraction) */
+  zr?: number
   ze: number
   /** front view: foot up on the toes (0–1) */
   toe: number
@@ -385,6 +389,7 @@ function applyYaw(f: Frame, yaw: number): Frame {
     const l = f[name]
     const arm = isArm(name)
     const root = C(l.root)
+    root[0] += (l.zr ?? 0) * sy
     const dm = sub(l.mid, l.root)
     const de = sub(l.end, l.mid)
     const mid: V = [root[0] + dm[0] * cy + l.zm * sy, root[1] + dm[1]]
@@ -486,10 +491,11 @@ export class Rig {
     const T = c.n((r) => r.key.t)
     const pa = c.n((r) => r.pa)
     const sh = c.n((r) => r.key.sh ?? 0)
+    const pz = c.n((r) => r.key.pz ?? 0)
     const bothHeadAbs = ch.A.key.h !== undefined && ch.B.key.h !== undefined
     const headA = bothHeadAbs ? ch.an((r) => r.key.h!, (r) => r.key.h !== undefined) : T + ch.n((r) => r.neck)
     const front = this.front
-    return this.build(p, T, pa, sh, headA, (name, root, fc) => {
+    return this.build(p, T, pa, sh, pz, headA, (name, root, fc) => {
       const cc = isArm(name) ? ca : c
       const a = cc.A.limbs[name]
       const b = cc.B.limbs[name]
@@ -543,7 +549,7 @@ export class Rig {
     })
   }
 
-  private build(p: V, T: number, pa: number, sh: number, headA: number, limb: (n: LimbName, root: V, fc: number) => LimbOut): Frame {
+  private build(p: V, T: number, pa: number, sh: number, pz: number, headA: number, limb: (n: LimbName, root: V, fc: number) => LimbOut): Frame {
     const { axis, fwd, S } = bodyFrame(p, T)
     const front = this.front
     const pAxis = front ? dir(pa) : axis
@@ -554,6 +560,7 @@ export class Rig {
     const head = add(add(neckBase, hd, 9.2), hf, front ? 0 : 1.1)
     const f: Partial<Frame> = { front, p, T, S, axis, fwd, pa: front ? pa : T, pAxis, pFwd, neckBase, head, headA, yaw: 0 }
     for (const name of LIMBS) f[name] = limb(name, limbRoot(name, p, S, fwd, front, pFwd, axis, sh), fcOf(name, front))
+    if (front && pz) for (const name of ['armN', 'armF'] as const) f[name] = { ...f[name]!, zr: pz }
     const yaw = front ? this.opts.yaw ?? 0 : 0
     return yaw ? applyYaw(f as Frame, yaw) : (f as Frame)
   }
