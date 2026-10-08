@@ -62,6 +62,19 @@ const atHead = (p: V, T = 180, n = 0, flipN = false, flipF = false): Pick<Key, '
     armF: { t: add(hc, side, -5.2), e: -(T + n) + 30 + 360, flip: flipF },
   }
 }
+/* ---------- 2.5D front-view helpers ---------- */
+/** front-view ankle height when up on the toes (heel raised, toes on the floor) */
+const AF_TOE = AF - 4.6 * 0.75
+/** toe tap: ball of the foot on the floor, heel up, knee soft and forward */
+const tap = (x: number, z = -1): LimbKey => ({ t: [x, AF_TOE], e: 90, toe: 1, z, pole: 0.08 })
+/** foot in the air (ankle h above the flat height), relaxed / slightly pointed */
+const air = (x: number, h: number, toe = 0.4, z = 0.5): LimbKey => ({ t: [x, AF - h], e: 90, toe, z })
+/** clap in front of the chest: upper arms forward and slightly across, forearms up toward the camera, fingers up */
+const CLAP: LimbKey = { a: -16, f: 45, k: 85, b: 38, e: 180 }
+/** front-view FK arm: abduction a, shoulder flexion f, elbow flexion k (toward the camera), in-plane bend b */
+const arm3 = (a: number, f: number, k: number, b = 0): LimbKey => ({ a, f, k, b })
+const both = (l: LimbKey): Pick<Key, 'armN' | 'armF'> => ({ armN: l, armF: { ...l } })
+
 /** hands clasped in front of the body (front view) at height s along the torso */
 const clasp = (p: V, s = 16, T = 180): Pick<Key, 'armN' | 'armF'> => ({
   armN: { t: bodyPt(p, T, s, 1.4), flip: true },
@@ -381,18 +394,32 @@ export const DEMOS: Record<DemoKey, Demo> = {
     still: 1,
   },
 
-  // 側併步: step wide, bring the other foot in to tap, clap; travel back and forth
+  // 側併步: step out → weight rolls over onto that foot (hips travel, unloaded hip drops, ribcage counter-leans)
+  // → the other foot closes in and taps (heel up, knee soft) while the hands clap; both knees bounce on
+  // every beat; arms open low on the step, clap on the tap and trail the body slightly
   steptouch: {
     view: view(100, 166),
     front: true,
+    smooth: true,
+    lag: 0.035,
+    headLag: 0.02,
     keys: [
-      k([91, standY(91, 95.5, 86.5)], 180, { ...clasp([91, standY(91, 95.5, 86.5)], 16), legN: ff(95.5, 4), legF: ff(86.5) }, { n: 0 }),
-      k([100, standY(100, 115, 86.5, 1)], 180, { armN: fk(62, 18), armF: fk(62, 18), legN: ff(115, 4), legF: ff(86.5) }, { n: 0 }),
-      k([109, standY(109, 113.5, 104.5)], 180, { ...clasp([109, standY(109, 113.5, 104.5)], 16), legN: ff(113.5), legF: ff(104.5, 4) }, { n: 0 }),
-      k([100, standY(100, 113.5, 85, 1)], 180, { armN: fk(62, 18), armF: fk(62, 18), legN: ff(113.5), legF: ff(85, 4) }, { n: 0 }),
+      // tap at the left: weight on the left (F) foot, right toe taps in, clap
+      k([89.5, 72.6], 178.5, { ...both(CLAP), legN: tap(95.5), legF: ff(86.5) }, { pa: 175.5, sh: 1.1, h: 180.6 }),
+      // right foot travels out, body rises and drifts right, arms start to open
+      k([95.5, 71.2], 179.5, { ...both(arm3(30, 24, 50, 16)), legN: air(106, 5), legF: ff(86.5) }, { pa: 179, sh: 0.4, h: 180.3 }),
+      // step right: foot lands flat, knees dip, weight transfers, arms open low
+      k([103, 72.9], 180.5, { ...both(arm3(40, 10, 40, 14)), legN: ff(113.5), legF: ff(86.5) }, { pa: 181, sh: 0, h: 179.7 }),
+      // left foot peels off and closes in, hips over the right foot
+      k([108.5, 71.2], 181, { ...both(arm3(16, 30, 62, 22)), legN: ff(113.5), legF: air(98, 4, 0.55, -0.5) }, { pa: 182.5, sh: 0.4, h: 179.5 }),
+      // tap at the right (mirror of key 0)
+      k([110.5, 72.6], 181.5, { ...both(CLAP), legN: ff(113.5), legF: tap(104.5) }, { pa: 184.5, sh: 1.1, h: 179.4 }),
+      k([104.5, 71.2], 180.5, { ...both(arm3(30, 24, 50, 16)), legN: ff(113.5), legF: air(94, 5) }, { pa: 181, sh: 0.4, h: 179.7 }),
+      k([97, 72.9], 179.5, { ...both(arm3(40, 10, 40, 14)), legN: ff(113.5), legF: ff(86.5) }, { pa: 179, sh: 0, h: 180.3 }),
+      k([91.5, 71.2], 179, { ...both(arm3(16, 30, 62, 22)), legN: air(102, 4, 0.55, -0.5), legF: ff(86.5) }, { pa: 177.5, sh: 0.4, h: 180.5 }),
     ],
-    dur: 380,
-    still: 1,
+    dur: 225,
+    still: 2,
   },
 
   // 站姿側抬腿: hands on hips, leg lifts straight out to the side

@@ -9,6 +9,20 @@ const phases = (q.get('phases') ?? '0,0.25,0.5,0.75').split(',').map(Number)
 const only = q.get('only')?.split(',') as DemoKey[] | undefined
 const cols = Number(q.get('cols') ?? phases.length)
 const keys = only ?? (Object.keys(DEMOS) as DemoKey[])
+// ?stage=1: cells look exactly like the exercise-detail demo stage at a 390 px wide phone (354 × 280 css px)
+if (q.get('stage')) {
+  createRoot(document.getElementById('root')!).render(
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 0, width: 354 * cols }}>
+      {keys.flatMap((k) =>
+        phases.map((p) => (
+          <div key={k + p} className="demo-stage cell" data-k={k} data-p={p} style={{ width: 354, height: 280, boxSizing: 'border-box', borderRadius: 0, boxShadow: 'none' }}>
+            <ExerciseFigure demo={k} phase={p} />
+          </div>
+        )),
+      )}
+    </div>,
+  )
+} else
 createRoot(document.getElementById('root')!).render(
   <div style={{ padding: 8, display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 6 }}>
     {keys.flatMap((k) =>
