@@ -626,7 +626,9 @@ function limbParts(fr: Frame, lb: LimbOut, arm: boolean, out: Parts, pre: string
       const r = (fr.yaw * Math.PI) / 180
       const cy = Math.cos(r)
       const sy = Math.sin(r)
-      const D = dir(lb.ea - 90, lb.fc)
+      // sole stays level: in 3/4 the frontal shin slant is mostly depth, not ankle roll
+      const D0 = dir(lb.ea - 90, lb.fc)
+      const D: V = [D0[0] * 0.25, Math.sqrt(1 - (D0[0] * 0.25) ** 2)]
       const pts: V[] = []
       for (const w of [-2.3, 2.3]) for (const q of FOOT_SIDE) pts.push([lb.end[0] + q[0] * sy + w * cy + D[0] * (q[1] + 1.1), lb.end[1] + D[1] * (q[1] + 1.1)])
       out[pre + 'ft'] = closed(hull(pts))

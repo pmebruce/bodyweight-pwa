@@ -68,6 +68,7 @@ export function skin(sk: HipSkin, q: V, wq?: number): V {
   const s = Math.sin(a)
   const qx = (x * c - y * s) * r
   const qy = (x * s + y * c) * r
+  if (sk.cy === 1) return add(add(sk.o, sk.ex, qx), sk.ey, qy)
   const v = add([sk.ex[0] * qx, sk.ex[1] * qx], sk.ey, qy)
   return [sk.o[0] + v[0] * sk.cy, sk.o[1] + v[1]]
 }

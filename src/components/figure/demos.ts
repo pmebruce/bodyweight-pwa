@@ -213,6 +213,28 @@ function armCircleKeys(): Key[] {
   return keys
 }
 
+/* ---- 直拳 / 上勾拳 (3/4 view fighter stance) ---- */
+/** hip height for planted feet given as [x, y, depth] (3/4 / front rig) */
+const hipYz = (px: number, fN: [number, number, number], fF: [number, number, number], slack: number): number => {
+  let y = -Infinity
+  for (const [sd, f] of [[1, fN], [-1, fF]] as const) {
+    const d = Math.hypot(f[0] - (px + L.hipW * sd), f[2])
+    const r = L.thigh + L.shin - slack
+    y = Math.max(y, f[1] - Math.sqrt(r * r - d * d))
+  }
+  return +y.toFixed(2)
+}
+// orthodox stance: left (far, N) foot forward, right (near, F) foot back with the heel a little up
+const BX_N: LimbKey = { t: [104.4, AF], z: 11, e: 90, pole: 0.12 }
+const BX_F: LimbKey = { t: [95.4, AF - 1.2], z: -10, e: 90, pole: 0.12 }
+const BX_Y = hipYz(100, [104.4, AF, 11], [95.4, AF - 1.2, -10], 3.2)
+const GUARD: LimbKey = { a: -4, f: 18, k: 138, b: -12 }
+const JAB: LimbKey = { a: -9, f: 86, k: 4, b: 2 }
+const UP_LOAD: LimbKey = { a: 4, f: 8, k: 96, b: 14 }
+const UP_HIT: LimbKey = { a: -10, f: 62, k: 94, b: -8 }
+const bx = (p: V, t: number, armN: LimbKey, armF: LimbKey, extra: Partial<Key> = {}): Key =>
+  k(p, t, { armN: { ...armN }, armF: { ...armF }, legN: BX_N, legF: BX_F }, { pa: 180, h: 180, ...extra })
+
 export const DEMOS: Record<DemoKey, Demo> = {
   squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [950, 850], still: 1 },
 
@@ -461,38 +483,44 @@ export const DEMOS: Record<DemoKey, Demo> = {
     still: 1,
   },
 
-  // 直拳連擊: fighter stance, alternating straight punches back to the guard
+  // 直拳連擊 (3/4 view): fighter stance, fists up by the chin, alternate straight punches and snap back to guard
   punch: {
-    view: view(104, 160),
+    view: view(104, 150),
+    front: true,
+    yaw: ARM_YAW,
     keys: [
-      k([95, 74.6], 177, { armN: fk(22, 138), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 4 }),
-      k([95.8, 74.6], 175, { armN: fk(86, 2), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 6, ease: 'out' }),
-      k([95, 74.6], 177, { armN: fk(22, 138), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 4 }),
-      k([96.6, 74.8], 173, { armN: fk(22, 138), armF: fk(85, 2), legN: flat(107), legF: flat(84) }, { n: 8, ease: 'out' }),
+      bx([100, BX_Y], 180, GUARD, GUARD),
+      // jab with the lead (far) hand: shoulder rolls up, slight lean into it
+      bx([100.6, BX_Y], 178.5, JAB, GUARD, { ease: 'out', sh: 0.8, h: 180.8 }),
+      bx([100, BX_Y], 180, GUARD, GUARD),
+      // cross with the rear (near) hand: back heel turns up, hips drift forward
+      bx([101.6, BX_Y + 0.3], 181.5, GUARD, JAB, { ease: 'out', sh: 0.8, h: 179.2 }),
     ],
     dur: [170, 240, 170, 240],
-    still: 1,
+    still: 3,
   },
 
-  // 上勾拳: dip the knees, drive the fist up to chin height
+  // 上勾拳 (3/4 view): dip the knees, drive the fist up to chin height in front of the face
   uppercut: {
-    view: view(104, 160),
+    view: view(104, 150),
+    front: true,
+    yaw: ARM_YAW,
     keys: [
-      k([95, 74.6], 177, { armN: fk(22, 138), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 4 }),
-      k([95, 79], 174, { armN: fk(0, 95), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 8 }),
-      k([95.6, 74], 178, { armN: fk(76, 70), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 2, ease: 'out' }),
-      k([95, 74.6], 177, { armN: fk(22, 138), armF: fk(18, 140), legN: flat(107), legF: flat(84) }, { n: 4 }),
-      k([95, 79], 174, { armN: fk(22, 138), armF: fk(-2, 95), legN: flat(107), legF: flat(84) }, { n: 8 }),
-      k([95.6, 74], 178, { armN: fk(22, 138), armF: fk(74, 70), legN: flat(107), legF: flat(84) }, { n: 2, ease: 'out' }),
+      bx([100, BX_Y], 180, GUARD, GUARD),
+      bx([100.4, BX_Y + 5.5], 178, UP_LOAD, GUARD, { h: 180.6 }),
+      bx([100.8, BX_Y - 1], 182, UP_HIT, GUARD, { ease: 'out', sh: 1, h: 179.5 }),
+      bx([100, BX_Y], 180, GUARD, GUARD),
+      bx([100.4, BX_Y + 5.5], 182, GUARD, UP_LOAD, { h: 179.4 }),
+      bx([100.8, BX_Y - 1], 178, GUARD, UP_HIT, { ease: 'out', sh: 1, h: 180.5 }),
     ],
     dur: [200, 170, 260, 200, 170, 260],
-    still: 2,
+    still: 5,
   },
 
   // 手臂繞圈 (3/4 view): arms straight out at shoulder height, hands draw small circles (4 forward, 4 back);
   // the circle plane faces sideways so the camera sees it as an ellipse
   armcircle: {
-    view: view(100, 140),
+    view: view(100, 150),
     front: true,
     yaw: ARM_YAW,
     smooth: true,
