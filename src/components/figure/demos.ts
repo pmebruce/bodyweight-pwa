@@ -23,6 +23,10 @@ export interface Demo {
   lag?: number
   /** head trails the body by this loop fraction */
   headLag?: number
+  /** front view: camera yaw (deg) → 3/4 view, figure turned toward screen right */
+  yaw?: number
+  /** faint path traced by the hands over this loop window [from, to] (e.g. one arm circle) */
+  trail?: [number, number]
 }
 const view = (cx: number, w = 142): [number, number, number] => [+Math.max(0, Math.min(200 - w, cx - w / 2)).toFixed(1), +(138 - w * 0.77).toFixed(1), w]
 
@@ -188,6 +192,26 @@ const LIE = (arms: Pick<Key, 'armN' | 'armF'>, feetX = 130): Key =>
 const CROSSED = { armN: { a: 34, b: 134, fs: 0.38, rel: true }, armF: { a: 30, b: 130, fs: 0.38, rel: true } }
 const BEHIND_HEAD = { armN: { a: 150, b: 117, fu: 0.7, fs: 0.63, rel: true }, armF: { a: 160, b: 112, fu: 0.62, fs: 0.6, rel: true } }
 
+
+/* ---- 手臂繞圈 (arm circles, 3/4 view) ---- */
+const ARM_YAW = 45
+const AC_PER = 8 // keys per circle
+const AC_STEP = 85 // ms per key → 0.68 s per circle
+const AC_R = 16 // circle radius in degrees at the shoulder (≈ 15 cm at the hand)
+const AC_STAND = hipY(100, 180, FLAT(108), FLAT(92), 1.3)
+function armCircleKeys(): Key[] {
+  const keys: Key[] = []
+  const n = AC_PER * 4
+  for (let i = 0; i < 2 * n; i++) {
+    // forward circles: hand goes up → forward → down → back; then the same path backwards
+    const ph = (i < n ? i : 2 * n - i) / AC_PER
+    const a = ph * Math.PI * 2
+    const arm: LimbKey = { a: 90 + AC_R * Math.cos(a), f: AC_R * Math.sin(a), k: 4, b: 3, e: 90 + AC_R * Math.cos(a) }
+    const bob = 0.35 * (1 - Math.cos(a)) // tiny dip each time the hands pass the bottom
+    keys.push(k([100, AC_STAND + bob], 180, { armN: { ...arm }, armF: { ...arm }, legN: ff(108), legF: ff(92) }, { pa: 180, sh: 0.5 + 0.35 * Math.cos(a), h: 180 }))
+  }
+  return keys
+}
 
 export const DEMOS: Record<DemoKey, Demo> = {
   squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [950, 850], still: 1 },
@@ -465,17 +489,18 @@ export const DEMOS: Record<DemoKey, Demo> = {
     still: 2,
   },
 
-  // 手臂繞圈: big forward circles (back → up → forward → down)
+  // 手臂繞圈 (3/4 view): arms straight out at shoulder height, hands draw small circles (4 forward, 4 back);
+  // the circle plane faces sideways so the camera sees it as an ellipse
   armcircle: {
-    view: view(100, 188),
-    keys: [
-      k([98, 72.2], 180, { armN: fk(4, 4), armF: fk(-6, 4), legN: flat(100), legF: flat(97) }, { n: 0, ease: 'lin' }),
-      k([98, 72.0], 180, { armN: fk(274, 4), armF: fk(264, 4), legN: flat(100), legF: flat(97) }, { n: 0, ease: 'lin' }),
-      k([98, 71.8], 180, { armN: fk(184, 4), armF: fk(174, 4), legN: flat(100), legF: flat(97) }, { n: 0, ease: 'lin' }),
-      k([98, 72.0], 180, { armN: fk(94, 4), armF: fk(84, 4), legN: flat(100), legF: flat(97) }, { n: 0, ease: 'lin' }),
-    ],
-    dur: 300,
-    still: 2,
+    view: view(100, 140),
+    front: true,
+    yaw: ARM_YAW,
+    smooth: true,
+    headLag: 0.01,
+    keys: armCircleKeys(),
+    dur: AC_STEP,
+    still: 0,
+    trail: [0, 1 / 8],
   },
 
   // 側踏開合 (low-impact jack): weight onto one foot, the other steps out wide with soft knees while the

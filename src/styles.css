@@ -449,3 +449,7 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .plan-scroll .plan-card-text { padding-right: 64px; }
 .plan-scroll .plan-card h3 { font-size: 18px; }
 .plan-scroll .plan-card-fig { width: 100px; }
+
+/* faint path traced by the hands (arm circles) */
+.fig-trail path { fill: none; stroke: #e2583e; stroke-opacity: 0.38; stroke-width: 0.9; stroke-dasharray: 2.2 1.8; stroke-linecap: round; }
+.fig-trail path.far { stroke-opacity: 0.22; }

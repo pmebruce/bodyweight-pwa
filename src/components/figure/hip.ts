@@ -28,15 +28,17 @@ export interface HipSkin {
   ey: V
   /** hip angle (radians): + = flexion (side) / abduction (front) */
   th: number
+  /** 3/4 view: horizontal squash of frontal offsets (cos yaw), 1 otherwise */
+  cy: number
 }
 
 export function hipSkin(fr: Frame, lb: LimbOut): HipSkin {
   const ex: V = fr.front ? [fr.pFwd[0] * lb.fc, fr.pFwd[1] * lb.fc] : fr.fwd
   const ey = fr.front ? fr.pAxis : fr.axis
-  const u = dir(lb.ua, lb.fc)
+  const u = dir(fr.front ? lb.uaF : lb.ua, lb.fc)
   const ux = u[0] * ex[0] + u[1] * ex[1]
   const uy = u[0] * ey[0] + u[1] * ey[1]
-  return { front: fr.front, o: lb.root, ex, ey, th: Math.atan2(ux, -uy) }
+  return { front: fr.front, o: lb.root, ex, ey, th: Math.atan2(ux, -uy), cy: fr.yaw ? Math.cos((fr.yaw * Math.PI) / 180) : 1 }
 }
 
 /** blend weight pelvis (0) → femur (1) of a rest point */
@@ -66,12 +68,13 @@ export function skin(sk: HipSkin, q: V, wq?: number): V {
   const s = Math.sin(a)
   const qx = (x * c - y * s) * r
   const qy = (x * s + y * c) * r
-  return add(add(sk.o, sk.ex, qx), sk.ey, qy)
+  const v = add([sk.ex[0] * qx, sk.ex[1] * qx], sk.ey, qy)
+  return [sk.o[0] + v[0] * sk.cy, sk.o[1] + v[1]]
 }
 
 /** world point that rides rigidly on the thigh → skinned world point (thigh muscles near the hip) */
 export function skinThigh(sk: HipSkin, p: V): V {
-  const d: V = [p[0] - sk.o[0], p[1] - sk.o[1]]
+  const d: V = [(p[0] - sk.o[0]) / sk.cy, p[1] - sk.o[1]]
   const lx = d[0] * sk.ex[0] + d[1] * sk.ex[1]
   const ly = d[0] * sk.ey[0] + d[1] * sk.ey[1]
   // back to the rest pose (undo the thigh rotation)

@@ -317,6 +317,106 @@ function joinSides(a: V[], b: V[]): string {
   return `M${pt(a[0])}${curve(a)}L${pt(b[0])}${curve(b)}Z`
 }
 
+/* ---------- 3/4 view (front rig + camera yaw) ---------- */
+/** linear profile lookup: arr = [s, w] pairs sorted by s (either direction) */
+function prof(arr: V[], s: number): number {
+  const asc = arr[0][0] < arr[arr.length - 1][0]
+  const a = asc ? arr : [...arr].reverse()
+  if (s <= a[0][0]) return a[0][1]
+  for (let i = 0; i < a.length - 1; i++) {
+    if (s <= a[i + 1][0]) {
+      const k = (s - a[i][0]) / (a[i + 1][0] - a[i][0] || 1)
+      return a[i][1] + (a[i + 1][1] - a[i][1]) * k
+    }
+  }
+  return a[a.length - 1][1]
+}
+interface Quarter {
+  cy: number
+  sy: number
+  /** screen vectors of the torso axis / lateral axis / depth (toward the camera) */
+  A: V
+  F: V
+  Z: V
+  /** screen normal of the axis pointing to screen right */
+  n: V
+}
+function quarterOf(fr: Frame): Quarter | undefined {
+  if (!fr.front || !fr.yaw) return undefined
+  const r = (fr.yaw * Math.PI) / 180
+  const cy = Math.cos(r)
+  const sy = Math.sin(r)
+  const A: V = [fr.axis[0] * cy, fr.axis[1]]
+  const F: V = [fr.fwd[0] * cy, fr.fwd[1]]
+  const la = Math.hypot(A[0], A[1]) || 1
+  let n: V = [-A[1] / la, A[0] / la]
+  if (n[0] < 0) n = [-n[0], -n[1]]
+  return { cy, sy, A, F, Z: [sy, 0], n }
+}
+/** torso cross-section at s (fraction): half width, front depth, back depth */
+const torsoSec = (s: number): [number, number, number] => [prof(FRONT_HALF, s), Math.max(0, prof(SIDE_FRONT, s)), Math.max(0, -prof(SIDE_BACK, s))]
+/** torso local (s fraction, lateral w, depth z) → screen */
+const qPt = (fr: Frame, q: Quarter, s: number, w: number, z: number): V => [
+  fr.p[0] + q.A[0] * s * L.torso + q.F[0] * w + q.Z[0] * z,
+  fr.p[1] + q.A[1] * s * L.torso + q.F[1] * w + q.Z[1] * z,
+]
+const Q_S = [-0.22, -0.12, -0.02, 0.08, 0.2, 0.32, 0.44, 0.54, 0.64, 0.74, 0.82, 0.9, 0.96, 1.01, 1.05, 1.08, 1.1]
+const PSI = Array.from({ length: 36 }, (_, i) => (i / 36) * Math.PI * 2)
+/** 3/4 torso silhouette: every cross-section is two half ellipses (chest / back), projected */
+function torsoQuarter(fr: Frame, q: Quarter, s0: number, s1: number, warp?: (p: V) => V): string {
+  const right: V[] = []
+  const left: V[] = []
+  for (const s of Q_S) {
+    if (s < s0 - 1e-6 || s > s1 + 1e-6) continue
+    const [a, zf, zb] = torsoSec(s)
+    let best = -Infinity, worst = Infinity
+    let pr: V = [0, 0], pl: V = [0, 0]
+    for (const ps of PSI) {
+      const w = a * Math.cos(ps)
+      const z = Math.sin(ps) * (Math.sin(ps) > 0 ? zf : zb)
+      const o: V = [q.F[0] * w + q.Z[0] * z, q.F[1] * w + q.Z[1] * z]
+      const d = o[0] * q.n[0] + o[1] * q.n[1]
+      if (d > best) { best = d; pr = [w, z] }
+      if (d < worst) { worst = d; pl = [w, z] }
+    }
+    right.push(qPt(fr, q, s, pr[0], pr[1]))
+    left.push(qPt(fr, q, s, pl[0], pl[1]))
+  }
+  const W = warp ?? ((p: V) => p)
+  return joinSides([...right].reverse().map(W), left.map(W))
+}
+/** 3/4: a front-view torso point (rigid frontal frame) → the same spot on the chest / belly surface, projected */
+function quarterSurface(fr: Frame, q: Quarter): (p: V) => V {
+  return (pt: V): V => {
+    const vx = pt[0] - fr.p[0]
+    const vy = pt[1] - fr.p[1]
+    const sl = vx * fr.axis[0] + vy * fr.axis[1]
+    const w = vx * fr.fwd[0] + vy * fr.fwd[1]
+    const s = sl / L.torso
+    const [a, zf] = torsoSec(s)
+    const k = Math.min(1, Math.abs(w) / (a * 1.04 || 1))
+    const z = zf * Math.sqrt(Math.max(0, 1 - k * k))
+    return qPt(fr, q, s, w, z)
+  }
+}
+/** convex hull (monotone chain) */
+function hull(ps: V[]): V[] {
+  const p = [...ps].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  const cr = (o: V, a: V, b: V) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  const lo: V[] = []
+  for (const q of p) {
+    while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop()
+    lo.push(q)
+  }
+  const up: V[] = []
+  for (let i = p.length - 1; i >= 0; i--) {
+    const q = p[i]
+    while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop()
+    up.push(q)
+  }
+  return [...lo.slice(0, -1), ...up.slice(0, -1)]
+}
+
 /**
  * front view: the pelvis can roll independently of the ribcage (hip drop / weight shift). Points of the
  * torso are rotated about the hip centre by the pelvis-vs-torso angle, fading out up the waist.
@@ -339,6 +439,8 @@ function spineWarp(fr: Frame): ((p: V) => V) | undefined {
 
 function torsoPiece(fr: Frame, s0: number, s1: number): string {
   const wp = spineWarp(fr)
+  const q = quarterOf(fr)
+  if (q) return torsoQuarter(fr, q, s0, s1, wp)
   const W0 = (q: V): V => add(add(fr.p, fr.axis, q[0] * L.torso), fr.fwd, q[1])
   const W = wp ? (q: V): V => wp(W0(q)) : W0
   if (fr.front) {
@@ -413,7 +515,7 @@ const HIP_PATCHES_N: [Patch, MuscleId[]][] = [
 ]
 const HIP_PATCHES_F: [Patch, MuscleId[]][] = [[GLUTE_MAX, ['glutes']]]
 
-export function figureLayers(front: boolean, headFront: boolean): Layer[] {
+export function figureLayers(front: boolean, headFront: boolean, yaw = 0): Layer[] {
   const T = tables(front)
   const arm = (s: 'N' | 'F', far: boolean): Layer => ({
     id: `a${s}`,
@@ -437,6 +539,18 @@ export function figureLayers(front: boolean, headFront: boolean): Layer[] {
       { k: 'eye', kind: 'ey', ids: [] },
       { k: 'face', kind: 'ln', ids: [] },
     ],
+  }
+  if (front && yaw) {
+    // 3/4: figure faces screen right → the N limbs are behind the body (darker), the F limbs in front
+    const body: Layer = {
+      id: 'body',
+      far: false,
+      base: [...legBase('F'), 'torso', 'neck'],
+      over: [...shinOver('F'), ...thighOver('F'), ...torsoOver],
+    }
+    const farLeg: Layer = { id: 'lN', far: true, base: legBase('N'), over: [...shinOver('N'), ...thighOver('N')] }
+    const head34: Layer = { id: 'hd', far: false, base: ['head'], over: [{ k: 'ear', kind: 'ft', ids: [] }, { k: 'eye', kind: 'ey', ids: [] }, { k: 'face', kind: 'ln', ids: [] }] }
+    return headFront ? [arm('N', true), farLeg, body, arm('F', false), head34] : [arm('N', true), farLeg, body, head34, arm('F', false)]
   }
   if (front) {
     return [
@@ -507,7 +621,18 @@ function limbParts(fr: Frame, lb: LimbOut, arm: boolean, out: Parts, pre: string
     }
     muscles(out, pre, segOf(lb.root, lb.mid, sg), T.t, fib, 1, (p) => skinThigh(sk, p))
     muscles(out, pre, segOf(lb.mid, lb.end, sg), T.s, fib)
-    if (front) {
+    if (front && fr.yaw) {
+      // 3/4: the foot points forward (toward screen right), seen half from the side
+      const r = (fr.yaw * Math.PI) / 180
+      const cy = Math.cos(r)
+      const sy = Math.sin(r)
+      const D = dir(lb.ea - 90, lb.fc)
+      const pts: V[] = []
+      for (const w of [-2.3, 2.3]) for (const q of FOOT_SIDE) pts.push([lb.end[0] + q[0] * sy + w * cy + D[0] * (q[1] + 1.1), lb.end[1] + D[1] * (q[1] + 1.1)])
+      out[pre + 'ft'] = closed(hull(pts))
+      const W = (q: V): V => [lb.end[0] + q[0] * sy + D[0] * (q[1] + 1.1) - 2.3 * cy, lb.end[1] + D[1] * (q[1] + 1.1)]
+      out[pre + '.toe'] = `M${pt(W([9.6, 1.8]))}${curve([W([9.6, 1.8]), W([10.1, 3.0]), W([10.0, 4.2])])}`
+    } else if (front) {
       const D = dir(lb.ea - 90, lb.fc)
       const X: V = [lb.fc * D[1], -lb.fc * D[0]]
       // up on the toes: seen from the front the instep tilts toward the camera → the foot reads longer
@@ -537,9 +662,12 @@ export function drawFrame(fr: Frame, fib: Set<string> = new Set()): Parts {
   limbParts(fr, fr.legF, false, out, 'lF', fib)
   // the torso stops above the hip joint; the hip pieces (pelvis ↔ thigh skin) cover the pelvis
   out.torso = torsoPiece(fr, fr.front ? 0.0 : 0.14, 1.1)
-  out.tclip = out.torso + out.lNhp + (fr.front ? out.lFhp : '')
+  out.tclip = out.torso + (fr.front && fr.yaw ? out.lFhp : out.lNhp + (fr.front ? out.lFhp : ''))
   const gt: Seg = { o: fr.p, u: fr.axis, n: fr.fwd, l: L.torso }
-  const wp = spineWarp(fr)
+  const wp0 = spineWarp(fr)
+  const qd = quarterOf(fr)
+  const qs = qd ? quarterSurface(fr, qd) : undefined
+  const wp = qs ? (p: V) => (wp0 ? wp0(qs(p)) : qs(p)) : wp0
   muscles(out, 't', gt, tables(fr.front).torso, fib, 1, wp)
   const W = wp ? (s: number, w: number) => wp(at(gt, s * L.torso, w)) : (s: number, w: number) => at(gt, s * L.torso, w)
   if (fr.front) {
@@ -555,7 +683,21 @@ export function drawFrame(fr: Frame, fib: Set<string> = new Set()): Parts {
   const up = hd
   const fw = dir(fr.headA - 90)
   const H = (q: V): V => add(add(fr.head, fw, q[0]), up, q[1])
-  if (fr.front) {
+  if (fr.front && fr.yaw) {
+    // 3/4: features sit on the face (depth z), turned toward screen right; only the near ear shows
+    const r = (fr.yaw * Math.PI) / 180
+    const cy = Math.cos(r)
+    const sy = Math.sin(r)
+    const H3 = (q: V, z: number): V => add(add(fr.head, fw, q[0] * cy + z * sy), up, q[1])
+    out.head = closed(HEAD_FRONT.map((q) => H3([q[0] * (1 + 0.12 * sy), q[1]], q[0] > 0 ? 0.9 : 0)))
+    out.ear = ellipse(H3([-5.9, -0.4], -0.8), fw, up, 1.25 * (0.55 + 0.45 * sy), 2.1)
+    out.eye = ellipse(H3([2.3, 0.2], 5.0), fw, up, 0.8 * (0.35 + 0.65 * cy), 0.42) + ellipse(H3([-2.3, 0.2], 5.0), fw, up, 0.8 * (0.35 + 0.65 * cy), 0.42)
+    out.face =
+      open([H3([1.1, 1.6], 5.5), H3([2.3, 2.0], 5.4), H3([3.5, 1.6], 4.8)]) +
+      open([H3([-1.1, 1.6], 5.5), H3([-2.3, 2.0], 5.4), H3([-3.5, 1.6], 4.8)]) +
+      open([H3([0.15, 0.6], 6.2), H3([0.55, -1.9], 7.2), H3([-0.5, -2.4], 6.4)]) +
+      open([H3([-1.3, -4.25], 5.4), H3([0, -4.45], 5.8), H3([1.3, -4.25], 5.4)])
+  } else if (fr.front) {
     out.head = closed(HEAD_FRONT.map(H))
     out.earL = ellipse(H([-6.0, -0.4]), fw, up, 1.3, 2.1)
     out.earR = ellipse(H([6.0, -0.4]), fw, up, 1.3, 2.1)

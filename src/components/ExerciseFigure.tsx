@@ -3,7 +3,7 @@ import type { DemoKey } from '../types'
 import { TARGETS, type MuscleId, type Targets } from './figure/anatomy'
 import { DEMOS, GROUND } from './figure/demos'
 import { drawFrame, figureLayers, groundClamp, shadowOf } from './figure/draw'
-import { Rig } from './figure/rig'
+import { dir as dirOf, Rig } from './figure/rig'
 
 interface Props {
   demo: DemoKey
@@ -32,13 +32,13 @@ interface Item {
  * per-frame path data is concatenated into its `d` (all shapes share one winding, so merged
  * subpaths fill as a union).
  */
-function buildSpec(front: boolean, headFront: boolean, tg: Targets, lite: boolean) {
+function buildSpec(front: boolean, headFront: boolean, tg: Targets, lite: boolean, yaw = 0) {
   const slots: string[][] = []
   const slot = (keys: string[]) => slots.push(keys) - 1
   const fib = new Set<string>()
   const clipSlots = new Map<string, number>()
   const gradOf = (tone: Tone, far: boolean) => (tone === 'p1' ? 'r' : tone === 'p2' ? 'o' : 'm') + (far ? 'f' : '')
-  const layers = figureLayers(front, headFront).map((L) => {
+  const layers = figureLayers(front, headFront, yaw).map((L) => {
     const base = slot(L.base)
     const groups: { clip?: string; items: Item[] }[] = []
     let cur: { clip?: string; overs: typeof L.over } | null = null
@@ -82,7 +82,7 @@ function buildSpec(front: boolean, headFront: boolean, tg: Targets, lite: boolea
 export default function ExerciseFigure({ demo, size = '100%', playing = true, speed = 1, className, phase, highlight = true }: Props) {
   const d = DEMOS[demo]
   const durs = useMemo(() => d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur)), [d])
-  const rig = useMemo(() => new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag }), [d, durs])
+  const rig = useMemo(() => new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw }), [d, durs])
   const tg = TARGETS[demo]
   // thumbnails (< 180 px wide) use a lighter element tree: merged muscles per segment, no fibres
   const [lite, setLite] = useState(false)
@@ -91,8 +91,25 @@ export default function ExerciseFigure({ demo, size = '100%', playing = true, sp
     const w = svgRef.current?.getBoundingClientRect().width ?? 999
     setLite(w > 0 && w < 180)
   }, [])
-  const spec = useMemo(() => buildSpec(!!d.front, !!d.headFront, highlight ? tg : NO_TARGETS, lite), [d, tg, highlight, lite])
+  const spec = useMemo(() => buildSpec(!!d.front, !!d.headFront, highlight ? tg : NO_TARGETS, lite, d.yaw ?? 0), [d, tg, highlight, lite])
   const shadowRef = useRef<SVGEllipseElement>(null)
+  // faint loop traced by each hand (static: the body barely moves), e.g. arm circles
+  const trail = useMemo(() => {
+    if (!d.trail) return null
+    const [a, b] = d.trail
+    const paths: string[] = []
+    for (const name of ['armF', 'armN'] as const) {
+      const pts: string[] = []
+      for (let i = 0; i <= 32; i++) {
+        const fr = groundClamp(rig.at(a + ((b - a) * i) / 32), GROUND)
+        const l = fr[name]
+        const hd = dirOf(l.ea, l.fc)
+        pts.push(`${(l.end[0] + hd[0] * 3).toFixed(1)} ${(l.end[1] + hd[1] * 3).toFixed(1)}`)
+      }
+      paths.push('M' + pts.join('L') + 'Z')
+    }
+    return paths
+  }, [d, rig])
   /** loop position 0–1, kept across pause / speed changes */
   const posRef = useRef<number | null>(null)
   const uid = useId().replace(/:/g, '')
@@ -228,6 +245,12 @@ export default function ExerciseFigure({ demo, size = '100%', playing = true, sp
           <rect x="31" y="95.6" width="46" height="5" rx="2.2" />
           <rect x="35" y="99" width="4" height={GROUND - 99} rx="1.5" />
           <rect x="70" y="99" width="4" height={GROUND - 99} rx="1.5" />
+        </g>
+      )}
+      {trail && (
+        <g className="fig-trail" aria-hidden="true">
+          <path d={trail[1]} className="far" />
+          <path d={trail[0]} />
         </g>
       )}
       <g className="fig-body">

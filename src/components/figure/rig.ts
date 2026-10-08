@@ -83,6 +83,9 @@ export interface RigOpts {
   lag?: number
   /** head trails the body by this loop fraction */
   headLag?: number
+  /** front view only: camera yaw in degrees (3/4 view). The figure turns to face screen right, so the
+   *  screen-left (F) limbs come toward the camera and the N limbs go behind the body. */
+  yaw?: number
 }
 
 export const L = {
@@ -122,6 +125,8 @@ export interface LimbOut {
   ze: number
   /** front view: foot up on the toes (0–1) */
   toe: number
+  /** front view: frontal-plane angle of the upper segment (before any 3/4 projection) */
+  uaF: number
   /** IK could not reach the target by this much (debug) */
   miss: number
 }
@@ -143,6 +148,8 @@ export interface Frame {
   armF: LimbOut
   legN: LimbOut
   legF: LimbOut
+  /** front view camera yaw (deg), 0 = straight on */
+  yaw: number
 }
 
 const isArm = (n: LimbName) => n === 'armN' || n === 'armF'
@@ -256,7 +263,7 @@ function computeLimb(
   if (!front || (f === 0 && kz === 0)) {
     const mid = add(root, dir(ua, fc), l1)
     const end = add(mid, dir(la, fc), l2)
-    return { root, mid, end, ua, la, ea, fc, fs: fsK, fu: fuK, zm: 0, ze: 0, toe, miss }
+    return { root, mid, end, ua, la, ea, fc, fs: fsK, fu: fuK, zm: 0, ze: 0, toe, miss, uaF: ua }
   }
   const f2 = f + (arm ? 1 : -1) * kz
   const U = v3(ua, f, fc)
@@ -270,7 +277,7 @@ function computeLimb(
     ua: cu >= 0 ? ua : ua + 180,
     la: cl >= 0 ? la : la + 180,
     ea: cl >= 0 || !arm ? ea : ea + 180,
-    fc, fs: fsK * Math.abs(cl), fu: fuK * Math.abs(cu), zm: U[2] * l1, ze: U[2] * l1 + W[2] * l2, toe, miss,
+    fc, fs: fsK * Math.abs(cl), fu: fuK * Math.abs(cu), zm: U[2] * l1, ze: U[2] * l1 + W[2] * l2, toe, miss, uaF: ua,
   }
 }
 
@@ -361,6 +368,39 @@ interface Ctx {
   n: (g: (r: KeyRes) => number, ok?: (r: KeyRes) => boolean) => number
   /** same for angles (degrees) */
   an: (g: (r: KeyRes) => number, ok?: (r: KeyRes) => boolean) => number
+}
+
+/**
+ * 3/4 view: the front-view frame lives in the body's frontal plane (x, y) plus a depth z toward the
+ * camera. Turning the camera by `yaw` maps a frontal offset x → x·cos(yaw) and a depth z → z·sin(yaw)
+ * on screen (the figure turns to face screen right).
+ */
+function applyYaw(f: Frame, yaw: number): Frame {
+  const cy = Math.cos(yaw * RAD)
+  const sy = Math.sin(yaw * RAD)
+  const x0 = f.p[0]
+  const C = (q: V): V => [x0 + (q[0] - x0) * cy, q[1]]
+  const out: Frame = { ...f, S: C(f.S), neckBase: C(f.neckBase), head: C(f.head), yaw }
+  for (const name of LIMBS) {
+    const l = f[name]
+    const arm = isArm(name)
+    const root = C(l.root)
+    const dm = sub(l.mid, l.root)
+    const de = sub(l.end, l.mid)
+    const mid: V = [root[0] + dm[0] * cy + l.zm * sy, root[1] + dm[1]]
+    const end: V = [mid[0] + de[0] * cy + (l.ze - l.zm) * sy, mid[1] + de[1]]
+    const u = sub(mid, root)
+    const w = sub(end, mid)
+    const lu = len(u)
+    const lw = len(w)
+    const ua = lu > 0.4 ? angOf(u, l.fc) : l.ua
+    const la = lw > 0.4 ? angOf(w, l.fc) : l.la
+    out[name] = {
+      ...l, root, mid, end, ua, la, ea: l.ea + wrap(la - l.la),
+      fu: lu / (arm ? L.upper : L.thigh), fs: lw / (arm ? L.fore : L.shin),
+    }
+  }
+  return out
 }
 
 export class Rig {
@@ -512,8 +552,9 @@ export class Rig {
     const hd = dir(headA)
     const hf = dir(headA - 90)
     const head = add(add(neckBase, hd, 9.2), hf, front ? 0 : 1.1)
-    const f: Partial<Frame> = { front, p, T, S, axis, fwd, pa: front ? pa : T, pAxis, pFwd, neckBase, head, headA }
+    const f: Partial<Frame> = { front, p, T, S, axis, fwd, pa: front ? pa : T, pAxis, pFwd, neckBase, head, headA, yaw: 0 }
     for (const name of LIMBS) f[name] = limb(name, limbRoot(name, p, S, fwd, front, pFwd, axis, sh), fcOf(name, front))
-    return f as Frame
+    const yaw = front ? this.opts.yaw ?? 0 : 0
+    return yaw ? applyYaw(f as Frame, yaw) : (f as Frame)
   }
 }
