@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { DIFF_LABEL, EX_MAP } from '../data/exercises'
 import ExerciseFigure from '../components/ExerciseFigure'
+import { TARGETS, targetLabels } from '../components/figure/anatomy'
 import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
@@ -27,14 +28,7 @@ export default function ExerciseDetail({ id }: { id: string }) {
         </span>
         <span className="tag big">{ex.type === 'reps' ? `建議 ${ex.defaultReps} 下` : `建議 ${ex.defaultSeconds} 秒`}</span>
       </div>
-      <div className="muscles">
-        <span className="muted">訓練部位</span>
-        {ex.muscles.map((m) => (
-          <span key={m} className="muscle">
-            {m}
-          </span>
-        ))}
-      </div>
+      <MuscleLegend demo={ex.demo} />
 
       <h2 className="section-title">動作要點</h2>
       <ol className="steps">
@@ -55,6 +49,38 @@ export default function ExerciseDetail({ id }: { id: string }) {
           <Icon name="play" size={18} /> 單練這個動作（3 組）
         </motion.button>
       </div>
+    </div>
+  )
+}
+
+function MuscleLegend({ demo }: { demo: keyof typeof TARGETS }) {
+  const t = targetLabels(TARGETS[demo])
+  return (
+    <div className="muscle-legend" aria-label="訓練部位">
+      <div className="ml-row">
+        <span className="ml-key">
+          <i className="ml-dot p1" />
+          主要
+        </span>
+        {t.p.map((m) => (
+          <span key={m} className="ml-chip p1">
+            {m}
+          </span>
+        ))}
+      </div>
+      {t.s.length > 0 && (
+        <div className="ml-row">
+          <span className="ml-key">
+            <i className="ml-dot p2" />
+            次要
+          </span>
+          {t.s.map((m) => (
+            <span key={m} className="ml-chip p2">
+              {m}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

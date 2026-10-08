@@ -59,7 +59,7 @@ export const L = {
   shin: 26,
   upper: 20,
   fore: 16,
-  shoulderW: 7.6, // front view half shoulder width
+  shoulderW: 9.0, // front view half shoulder width
   hipW: 4.6, // front view half hip width
 }
 
