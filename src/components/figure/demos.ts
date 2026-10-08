@@ -38,13 +38,6 @@ const k = (p: V, t: number, limbs: Pick<Key, 'armN' | 'armF' | 'legN' | 'legF'>,
 const AF = GROUND - 5.6 // front-view ankle height with the shoe flat on the floor
 /** planted foot in the front view */
 const ff = (x: number, lift?: number): LimbKey => ({ t: [x, AF], e: 90, lift })
-/** front-view hip height that keeps both legs (almost) straight for the given foot x positions */
-const standY = (px: number, xN: number, xF: number, slack = 0.4, T = 180): number => {
-  const w = 4.6 * Math.sin((T - 90) * (Math.PI / 180))
-  const reach = 52.5 - slack
-  const dx = Math.max(Math.abs(xN - (px + w)), Math.abs(xF - (px - w)))
-  return +(AF - Math.sqrt(reach * reach - dx * dx)).toFixed(1)
-}
 /** point on the torso: s along hip → shoulder, w across (front view: + = screen right) */
 const bodyPt = (p: V, T: number, s: number, w: number): V => add(add(p, dir(T), s), dir(T - 90), w)
 /** hands on the hips (front view) */
@@ -75,11 +68,112 @@ const CLAP: LimbKey = { a: -16, f: 45, k: 85, b: 38, e: 180 }
 const arm3 = (a: number, f: number, k: number, b = 0): LimbKey => ({ a, f, k, b })
 const both = (l: LimbKey): Pick<Key, 'armN' | 'armF'> => ({ armN: l, armF: { ...l } })
 
-/** hands clasped in front of the body (front view) at height s along the torso */
-const clasp = (p: V, s = 16, T = 180): Pick<Key, 'armN' | 'armF'> => ({
-  armN: { t: bodyPt(p, T, s, 1.4), flip: true },
-  armF: { t: bodyPt(p, T, s, -1.4), flip: true },
+/** hip height (front view) that leaves `slack` of give in the longer leg for the given ankle positions,
+ *  honouring the pelvis roll pa */
+const hipY = (px: number, pa: number, fN: V, fF: V, slack = 0.4): number => {
+  const fw = dir(pa - 90)
+  let y = -Infinity
+  for (const [sd, f] of [[1, fN], [-1, fF]] as const) {
+    const dx = f[0] - (px + fw[0] * L.hipW * sd)
+    const r = L.thigh + L.shin - slack
+    y = Math.max(y, f[1] - fw[1] * L.hipW * sd - Math.sqrt(r * r - dx * dx))
+  }
+  return +y.toFixed(2)
+}
+const FLAT = (x: number): V => [x, AF]
+/** left ↔ right mirror of a front-view key (x → 200 − x, limbs swapped; FK numbers are already per-side) */
+const mxl = (l: LimbKey): LimbKey => (l.t ? { ...l, t: [200 - l.t[0], l.t[1]] } : { ...l })
+const mirror = (q: Key): Key => ({
+  ...q,
+  p: [200 - q.p[0], q.p[1]],
+  t: 360 - q.t,
+  pa: q.pa !== undefined ? 360 - q.pa : undefined,
+  h: q.h !== undefined ? 360 - q.h : undefined,
+  n: q.n !== undefined ? -q.n : undefined,
+  armN: mxl(q.armF), armF: mxl(q.armN), legN: mxl(q.legF), legF: mxl(q.legN),
 })
+/** keys for the first half of a symmetric move → full loop (second half mirrored) */
+const sym = (half: Key[]): Key[] => [...half, ...half.map(mirror)]
+
+/* ---- 側踏開合 (step jack) ---- */
+const SJ_C = hipY(100, 180, FLAT(104.5), FLAT(95.5), 1.4)
+const SJ_DOWN: LimbKey = { a: 9, f: 6, k: 22, b: 8 }
+const SJ_MID: LimbKey = { a: 84, f: 8, k: 22, b: 18 }
+const SJ_UP: LimbKey = { a: 160, f: 6, k: 12, b: 20 }
+const stepjackHalf: Key[] = [
+  k([100, SJ_C], 180, { armN: SJ_DOWN, armF: SJ_DOWN, legN: ff(104.5), legF: ff(95.5) }, { pa: 180, h: 180 }),
+  k([98.4, hipY(98.4, 177.5, FLAT(95.5), FLAT(95.5), 0.9)], 179.2, { armN: SJ_MID, armF: SJ_MID, legN: { t: [113, AF - 4], e: 90, toe: 0.35, z: 0.5 }, legF: ff(95.5) }, { pa: 177.5, sh: 0.6, h: 180.4 }),
+  k([102.6, hipY(102.6, 180.6, FLAT(121), FLAT(95.5), 2.4)], 180.4, { armN: SJ_UP, armF: SJ_UP, legN: ff(121), legF: ff(95.5) }, { pa: 180.6, sh: 1.6, h: 179.8 }),
+  k([98.6, hipY(98.6, 177.8, FLAT(95.5), FLAT(95.5), 0.9)], 179.3, { armN: SJ_MID, armF: SJ_MID, legN: { t: [111, AF - 3.4], e: 90, toe: 0.3, z: 0.5 }, legF: ff(95.5) }, { pa: 177.8, sh: 0.6, h: 180.4 }),
+]
+
+/* ---- 站姿側抬腿 (standing side leg raise) ---- */
+const SL_C = hipY(100, 180, FLAT(105), FLAT(95), 1.0)
+const SL_S = hipY(97.2, 178.8, FLAT(105), FLAT(95), 0.9)
+const SL_U = hipY(97, 183, FLAT(95), FLAT(95), 0.9)
+const sidelegHalf: Key[] = [
+  k([100, SL_C], 180, { ...onHips([100, SL_C]), legN: ff(105), legF: ff(95) }, { pa: 180, h: 180 }),
+  // weight shifts over the standing (left) foot first
+  k([97.2, SL_S], 181, { ...onHips([97.2, SL_S], 181), legN: ff(105), legF: ff(95) }, { pa: 178.8, h: 180 }),
+  // leg sweeps out: lifted hip hikes, trunk leans a little over the standing leg, foot slightly pointed
+  k([97, SL_U], 185, { ...onHips([97, SL_U], 185), legN: { a: 41, b: 2, f: 3, k: 4, e: 112, toe: 0.35 }, legF: ff(95) }, { pa: 183, n: -4 }),
+  k([97.2, SL_S], 181, { ...onHips([97.2, SL_S], 181), legN: ff(105), legF: ff(95) }, { pa: 178.8, h: 180 }),
+]
+
+/* ---- 站姿側提膝 (standing side crunch) ---- */
+const SC_C = hipY(100, 180, FLAT(106), FLAT(94), 1.2)
+const SC_U = hipY(97, 188, FLAT(94), FLAT(94), 1.0)
+const sidecrunchHalf: Key[] = [
+  k([100, SC_C], 180, { ...atHead([100, SC_C]), legN: ff(106), legF: ff(94) }, { pa: 180, n: 0 }),
+  // knee drives up and out, hip hikes on that side, ribcage crunches down toward it (elbow to knee)
+  k([97, SC_U], 160, { ...atHead([97, SC_U], 160, 6), legN: { a: 92, b: 96, f: 10, k: 6, toe: 0.3 }, legF: ff(94) }, { pa: 188, n: 6 }),
+]
+
+/* ---- 擺臀扭腰 (hip sway / hula) ---- */
+const HU_N = FLAT(108), HU_F = FLAT(92)
+const HU_ARM_HI: LimbKey = { a: 96, f: 10, k: 34, b: 26 }
+const HU_ARM_LO: LimbKey = { a: 70, f: 12, k: 26, b: 14 }
+const HU_ARM_MID: LimbKey = { a: 82, f: 12, k: 30, b: 20 }
+const hulaHalf: Key[] = [
+  // hips out to the right: right hip hikes, left knee softens, shoulders stay over the feet
+  k([107, hipY(107, 188, HU_N, HU_F, 1.2)], 191, { armN: HU_ARM_HI, armF: HU_ARM_LO, legN: ff(108), legF: ff(92) }, { pa: 188, h: 180 }),
+  // through the middle (hips forward): body rises
+  k([100, hipY(100, 180, HU_N, HU_F, 0.8)], 180, { armN: HU_ARM_MID, armF: HU_ARM_MID, legN: ff(108), legF: ff(92) }, { pa: 180, h: 180 }),
+]
+
+/* ---- 側弓步 (side lunge) ---- */
+const SLG_W = hipY(100, 180, FLAT(129), FLAT(71), 0.6)
+/** hands clasped in front of the chest: upper arms forward and a little across, forearms up toward the camera */
+const SLG_ARM: LimbKey = { a: -16, f: 35, k: 95, b: 34, e: 180, rel: true }
+const SLG_CL = (_p: V, _T = 180): Pick<Key, 'armN' | 'armF'> => ({ armN: { ...SLG_ARM }, armF: { ...SLG_ARM } })
+const sidelungeHalf: Key[] = [
+  k([100, SLG_W], 180, { ...SLG_CL([100, SLG_W]), legN: ff(129), legF: ff(71) }, { pa: 180, n: 0 }),
+  // sit into the right leg: knee bends out over the toes, left leg long, hips drop and travel right
+  k([115.5, 90], 183, { ...SLG_CL([115.5, 90], 183), legN: { ...ff(129), pole: 1.25 }, legF: ff(71) }, { pa: 181.5, n: -3 }),
+]
+
+/* ---- 滑雪跳 (ski hop) ---- */
+const SK_LAND = (cx: number): number => hipY(cx, 180, FLAT(cx + 3.6), FLAT(cx - 3.6), 4.2)
+// landing on the left: both arms swing forward and across to the right (counter-balance), like a pole plant
+const SK_OUT: LimbKey = { a: 34, f: 34, k: 48, b: 10 }
+const SK_IN: LimbKey = { a: -14, f: 40, k: 56, b: 22 }
+const SK_AIR: LimbKey = { a: 12, f: 8, k: 34, b: 8 }
+const skihopHalf: Key[] = [
+  // land on the left: knees bend (toward the camera), hips sink and lean into the landing, poles planted
+  k([88, SK_LAND(88)], 182.5, { armN: SK_OUT, armF: SK_IN, legN: { ...ff(91.6), pole: 0.1 }, legF: { ...ff(84.4), pole: 0.1 } }, { pa: 181, n: -2.5 }),
+  // push off: body rises and travels right, feet tuck up, arms swing back
+  k([100, 63.6], 180, { armN: SK_AIR, armF: SK_AIR, legN: { t: [103.6, AF - 7], e: 90, toe: 0.45, z: -1, pole: 0.1 }, legF: { t: [96.4, AF - 7], e: 90, toe: 0.45, z: -1, pole: 0.1 } }, { pa: 180, n: 0 }),
+]
+
+/* ---- 站姿側彎 (standing side bend) ---- */
+const SB2 = hipY(100, 180, FLAT(106), FLAT(94), 1.1)
+const SB3 = hipY(103, 180, FLAT(106), FLAT(94), 1.0)
+
+/* ---- 開合跳 (jumping jack) ---- */
+const JJ_IN = hipY(100, 180, FLAT(104.6), FLAT(95.4), 3.2)
+const JJ_OUT = hipY(100, 180, FLAT(117), FLAT(83), 3.6)
+const JJ_DOWN: LimbKey = { a: 8, f: 4, k: 14, b: 6 }
+const JJ_UP: LimbKey = { a: 166, f: 4, k: 8, b: 14 }
 
 /* ---------- shared poses (side view, facing right) ---------- */
 const STAND = k([98, 72.2], 180, { armN: fk(7, 14), armF: fk(3, 12), legN: flat(100), legF: flat(97) }, { n: 0 })
@@ -94,10 +188,6 @@ const LIE = (arms: Pick<Key, 'armN' | 'armF'>, feetX = 130): Key =>
 const CROSSED = { armN: { a: 34, b: 134, fs: 0.38, rel: true }, armF: { a: 30, b: 130, fs: 0.38, rel: true } }
 const BEHIND_HEAD = { armN: { a: 150, b: 117, fu: 0.7, fs: 0.63, rel: true }, armF: { a: 160, b: 112, fu: 0.62, fs: 0.6, rel: true } }
 
-const SC0 = standY(100, 106, 94)
-const SC1 = standY(96.5, 106, 93.5)
-const Q = { n: false, f: false }
-const SB = standY(101.5, 106, 94, 0.8) // side-bend hip height (hips shift slightly)
 
 export const DEMOS: Record<DemoKey, Demo> = {
   squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [950, 850], still: 1 },
@@ -190,13 +280,20 @@ export const DEMOS: Record<DemoKey, Demo> = {
     still: 1,
   },
 
+  // 開合跳: land soft on every beat (knees bend toward the camera), arms trail the legs a little
   jack: {
     front: true,
+    smooth: true,
+    lag: 0.05,
+    headLag: 0.02,
     keys: [
-      k([100, 71.2], 180, { armN: fk(6, 8), armF: fk(6, 8), legN: fk(1.5, 2), legF: fk(1.5, 2) }, { n: 0, hop: 6 }),
-      k([100, 71.9], 180, { armN: fk(166, 12), armF: fk(166, 12), legN: fk(16, 8), legF: fk(16, 8) }, { n: 0, hop: 6 }),
+      k([100, JJ_IN], 180, { armN: JJ_DOWN, armF: JJ_DOWN, legN: ff(104.6), legF: ff(95.4) }, { pa: 180, h: 180 }),
+      k([100, 64.5], 180, { armN: { a: 90, f: 4, k: 10, b: 10 }, armF: { a: 90, f: 4, k: 10, b: 10 }, legN: { t: [111.5, AF - 6], e: 90, toe: 0.5, z: 0 }, legF: { t: [88.5, AF - 6], e: 90, toe: 0.5, z: 0 } }, { pa: 180, sh: 0.8, h: 180 }),
+      k([100, JJ_OUT], 180, { armN: JJ_UP, armF: JJ_UP, legN: ff(117), legF: ff(83) }, { pa: 180, sh: 1.8, h: 180 }),
+      k([100, 64.5], 180, { armN: { a: 90, f: 4, k: 10, b: 10 }, armF: { a: 90, f: 4, k: 10, b: 10 }, legN: { t: [111.5, AF - 6], e: 90, toe: 0.5, z: 0 }, legF: { t: [88.5, AF - 6], e: 90, toe: 0.5, z: 0 } }, { pa: 180, sh: 0.8, h: 180 }),
     ],
-    dur: 360,
+    dur: [190, 170, 190, 170],
+    still: 2,
   },
 
   superman: {
@@ -381,17 +478,16 @@ export const DEMOS: Record<DemoKey, Demo> = {
     still: 2,
   },
 
-  // 側踏開合 (low-impact jack): step out to the side while the arms sweep overhead
+  // 側踏開合 (low-impact jack): weight onto one foot, the other steps out wide with soft knees while the
+  // arms sweep overhead; back in, other side
   stepjack: {
     front: true,
-    keys: [
-      k([100, standY(100, 105, 95)], 180, { armN: fk(10, 10), armF: fk(10, 10), legN: ff(105), legF: ff(95, 4) }, { n: 0 }),
-      k([102, standY(102, 122, 95, 0.8)], 180, { armN: fk(158, 14), armF: fk(158, 14), legN: ff(122, 4), legF: ff(95) }, { n: 0 }),
-      k([100, standY(100, 105, 95)], 180, { armN: fk(10, 10), armF: fk(10, 10), legN: ff(105, 4), legF: ff(95) }, { n: 0 }),
-      k([98, standY(98, 105, 78, 0.8)], 180, { armN: fk(158, 14), armF: fk(158, 14), legN: ff(105), legF: ff(78, 4) }, { n: 0 }),
-    ],
-    dur: 340,
-    still: 1,
+    smooth: true,
+    lag: 0.045,
+    headLag: 0.02,
+    keys: sym(stepjackHalf),
+    dur: 190,
+    still: 2,
   },
 
   // 側併步: step out → weight rolls over onto that foot (hips travel, unloaded hip drops, ribcage counter-leans)
@@ -422,82 +518,90 @@ export const DEMOS: Record<DemoKey, Demo> = {
     still: 2,
   },
 
-  // 站姿側抬腿: hands on hips, leg lifts straight out to the side
+  // 站姿側抬腿: hands on hips; shift the weight over the standing foot, sweep the straight leg out to the side
   sideleg: {
     view: view(100, 166),
     front: true,
-    keys: [
-      k([100, standY(100, 105, 95)], 180, { ...onHips([100, standY(100, 105, 95)]), legN: ff(105), legF: ff(95) }, { n: 0 }),
-      k([98, standY(98, 105, 94.5)], 184, { ...onHips([98, standY(98, 105, 94.5)], 184), legN: { a: 42, b: 0, e: 118 }, legF: ff(94.5) }, { n: -3 }),
-      k([100, standY(100, 105, 95)], 180, { ...onHips([100, standY(100, 105, 95)]), legN: ff(105), legF: ff(95) }, { n: 0 }),
-      k([102, standY(102, 105.5, 95)], 176, { ...onHips([102, standY(102, 105.5, 95)], 176), legN: ff(105.5), legF: { a: 42, b: 0, e: 118 } }, { n: 3 }),
-    ],
-    dur: 480,
-    still: 1,
+    smooth: true,
+    headLag: 0.02,
+    keys: sym(sidelegHalf),
+    dur: [300, 360, 420, 300, 300, 360, 420, 300],
+    still: 2,
   },
 
   // 站姿側提膝 (standing side crunch): knee lifts out to the side, same-side elbow crunches down to it
   sidecrunch: {
     view: view(100, 170),
     front: true,
-    keys: [
-      k([100, SC0], 180, { ...atHead([100, SC0]), legN: ff(106), legF: ff(94) }, { n: 0 }),
-      k([96.5, SC1], 158, { ...atHead([96.5, SC1], 158, 6, Q.n, Q.f), legN: { a: 94, b: 94 }, legF: ff(93.5) }, { n: 6 }),
-      k([100, SC0], 180, { ...atHead([100, SC0]), legN: ff(106), legF: ff(94) }, { n: 0 }),
-      k([103.5, SC1], 202, { ...atHead([103.5, SC1], 202, -6, Q.f, Q.n), legN: ff(106.5), legF: { a: 94, b: 94 } }, { n: -6 }),
-    ],
+    smooth: true,
+    lag: 0.02,
+    keys: sym(sidecrunchHalf),
     dur: [420, 380, 420, 380],
     still: 1,
   },
 
-  // 擺臀扭腰: hips sway side to side under steady shoulders, arms wave
+  // 擺臀扭腰: hips circle side → front → side under steady shoulders, knees take turns softening, arms wave
   hula: {
     view: view(100, 166),
     front: true,
+    smooth: true,
+    lag: 0.07,
+    headLag: 0.03,
     keys: [
-      k([106, standY(106, 108, 92, 0.3, 191) - 0.6], 192, { armN: fk(88, 30), armF: fk(64, 12), legN: ff(108), legF: ff(92) }, { h: 180 }),
-      k([94, standY(94, 108, 92, 0.3, 169) - 0.6], 168, { armN: fk(64, 12), armF: fk(88, 30), legN: ff(108), legF: ff(92) }, { h: 180 }),
+      hulaHalf[0],
+      hulaHalf[1],
+      mirror(hulaHalf[0]),
+      // through the middle (hips back): body sinks a touch
+      k([100, hipY(100, 180, HU_N, HU_F, 1.6)], 180, { armN: HU_ARM_MID, armF: HU_ARM_MID, legN: ff(108), legF: ff(92) }, { pa: 180, h: 180 }),
     ],
-    dur: 520,
+    dur: 300,
+    still: 0,
   },
 
-  // 側弓步: wide stance, sit into one leg with the other straight, hands clasped
+  // 側弓步: wide stance, sit into one leg (knee out over the toes) with the other long, hands clasped
   sidelunge: {
-    view: view(97, 162),
+    view: view(100, 162),
     front: true,
-    keys: [
-      k([97, standY(97, 126, 68)], 180, { ...clasp([97, standY(97, 126, 68)], 18), legN: ff(126), legF: ff(68) }, { n: 0 }),
-      k([113, 89], 183, { ...clasp([113, 89], 18, 183), legN: ff(126), legF: ff(68) }, { n: -3 }),
-      k([97, standY(97, 126, 68)], 180, { ...clasp([97, standY(97, 126, 68)], 18), legN: ff(126), legF: ff(68) }, { n: 0 }),
-      k([81, 89], 177, { ...clasp([81, 89], 18, 177), legN: ff(126), legF: ff(68) }, { n: 3 }),
-    ],
-    dur: 520,
+    smooth: true,
+    lag: 0.02,
+    keys: [sidelungeHalf[0], sidelungeHalf[1], { ...sidelungeHalf[1] }, sidelungeHalf[0], mirror(sidelungeHalf[1]), { ...mirror(sidelungeHalf[1]) }],
+    dur: [560, 260, 520, 560, 260, 520],
     still: 1,
   },
 
-  // 滑雪跳: feet together, hop side to side, arms swing like ski poles
+  // 滑雪跳: feet together, spring side to side, land soft, arms swing like ski poles
   skihop: {
     view: view(100, 176),
     front: true,
-    keys: [
-      k([88, standY(88, 91.6, 84.4, 0.6)], 182, { armN: fk(24, 64), armF: fk(14, 44), legN: ff(91.6, 7), legF: ff(84.4, 7) }, { n: -2, hop: 9 }),
-      k([112, standY(112, 115.6, 108.4, 0.6)], 178, { armN: fk(14, 44), armF: fk(24, 64), legN: ff(115.6, 7), legF: ff(108.4, 7) }, { n: 2, hop: 9 }),
-    ],
-    dur: 400,
+    smooth: true,
+    lag: 0.04,
+    headLag: 0.02,
+    keys: sym(skihopHalf),
+    dur: [210, 190, 210, 190],
   },
 
-  // 站姿側彎: one arm reaches over the head, slow side bend to each side
+  // 站姿側彎: one arm reaches over the head; the ribcage bends while the pelvis stays level and the hips
+  // push out the other way
   sidebend: {
     front: true,
+    smooth: true,
+    lag: 0.012,
+    headLag: 0.01,
     keys: [
-      k([100, SB], 180, { ...onHips([100, SB]), legN: ff(106), legF: ff(94) }, { n: 0 }),
-      k([101.5, SB], 199, { armN: { a: 176, b: 18, rel: true }, armF: onHips([101.5, SB], 199).armF, legN: ff(106), legF: ff(94) }, { n: -6 }),
-      k([101.5, SB], 200, { armN: { a: 178, b: 18, rel: true }, armF: onHips([101.5, SB], 200).armF, legN: ff(106), legF: ff(94) }, { n: -6 }),
-      k([100, SB], 180, { ...onHips([100, SB]), legN: ff(106), legF: ff(94) }, { n: 0 }),
-      k([98.5, SB], 161, { armN: onHips([98.5, SB], 161).armN, armF: { a: 176, b: 18, rel: true }, legN: ff(106), legF: ff(94) }, { n: 6 }),
-      k([98.5, SB], 160, { armN: onHips([98.5, SB], 160).armN, armF: { a: 178, b: 18, rel: true }, legN: ff(106), legF: ff(94) }, { n: 6 }),
+      k([100, SB2], 180, { ...onHips([100, SB2]), legN: ff(106), legF: ff(94) }, { pa: 180, n: 0 }),
+      // arm sweeps up and out to the side (elbow soft) as the bend begins
+      k([101.2, SB3], 184, { armN: { a: 112, b: 16, rel: true }, armF: onHips([101.2, SB3], 184).armF, legN: ff(106), legF: ff(94) }, { pa: 180, n: -2 }),
+      k([103, SB3], 198, { armN: { a: 176, b: 18, rel: true }, armF: onHips([103, SB3], 198).armF, legN: ff(106), legF: ff(94) }, { pa: 180.5, n: -6 }),
+      k([103.2, SB3], 200, { armN: { a: 178, b: 18, rel: true }, armF: onHips([103.2, SB3], 200).armF, legN: ff(106), legF: ff(94) }, { pa: 180.5, n: -7 }),
+      k([101.4, SB3], 186, { armN: { a: 118, b: 18, rel: true }, armF: onHips([101.4, SB3], 186).armF, legN: ff(106), legF: ff(94) }, { pa: 180, n: -2 }),
+      k([100, SB2], 180, { ...onHips([100, SB2]), legN: ff(106), legF: ff(94) }, { pa: 180, n: 0 }),
+      k([98.8, SB3], 176, { armN: onHips([98.8, SB3], 176).armN, armF: { a: 112, b: 16, rel: true }, legN: ff(106), legF: ff(94) }, { pa: 180, n: 2 }),
+      k([97, SB3], 162, { armN: onHips([97, SB3], 162).armN, armF: { a: 176, b: 18, rel: true }, legN: ff(106), legF: ff(94) }, { pa: 179.5, n: 6 }),
+      k([96.8, SB3], 160, { armN: onHips([96.8, SB3], 160).armN, armF: { a: 178, b: 18, rel: true }, legN: ff(106), legF: ff(94) }, { pa: 179.5, n: 7 }),
+      k([98.6, SB3], 174, { armN: onHips([98.6, SB3], 174).armN, armF: { a: 118, b: 18, rel: true }, legN: ff(106), legF: ff(94) }, { pa: 180, n: 2 }),
     ],
-    dur: [1000, 800, 900, 1000, 800, 900],
-    still: 1,
+    dur: [500, 500, 800, 450, 450, 500, 500, 800, 450, 450],
+    still: 2,
   },
+
 }
