@@ -7,17 +7,21 @@ import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
 import { useState } from 'react'
 
+/** demo playback speeds, cycled by the speed chip */
+const SPEEDS = [1, 0.75, 0.5] as const
+
 export default function ExerciseDetail({ id }: { id: string }) {
   const ex = EX_MAP[id]
-  const [slow, setSlow] = useState(false)
+  const [si, setSi] = useState(0)
+  const speed = SPEEDS[si] ?? 1
   if (!ex) return <div className="page"><PageHeader title="找不到動作" back="/library" /><Empty icon="🤔" title="這個動作不存在" /></div>
   return (
     <div className="page with-cta">
       <PageHeader title={ex.name} subtitle={ex.en} back="/library" />
       <motion.div className="demo-stage" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}>
-        <ExerciseFigure demo={ex.demo} speed={slow ? 0.5 : 1} />
-        <button className="speed-btn" onClick={() => setSlow((s) => !s)}>
-          {slow ? '0.5×' : '1×'} 速度
+        <ExerciseFigure demo={ex.demo} speed={speed} />
+        <button className="speed-btn" onClick={() => setSi((i) => (i + 1) % SPEEDS.length)} aria-label={`播放速度 ${speed} 倍，點一下切換`}>
+          {speed}× 速度
         </button>
       </motion.div>
 
