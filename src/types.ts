@@ -64,6 +64,8 @@ export interface WorkoutLog {
 
 export interface Settings {
   nickname: string
+  /** first-launch name prompt done (answered or skipped) */
+  onboarded: boolean
   defaultRest: number
   prepSeconds: number
   weeklyGoal: number

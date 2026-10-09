@@ -76,7 +76,7 @@ export default function Settings() {
   const clear = async () => {
     if (await confirm({ title: '清除所有資料？', message: '所有訓練紀錄、自訂計畫與設定都會被刪除，無法復原。建議先匯出備份。', confirmText: '全部清除', danger: true })) {
       clearAll()
-      setName('Bruce')
+      setName('')
       toast('已清除所有資料')
     }
   }
@@ -88,7 +88,7 @@ export default function Settings() {
       <h2 className="section-title">個人</h2>
       <div className="set-group">
         <Row icon="user" title="暱稱">
-          <input className="set-input" value={name} maxLength={12} placeholder="你的名字" onChange={(e) => setName(e.target.value)} onBlur={() => updateSettings({ nickname: name.trim() })} />
+          <input className="set-input" value={name} maxLength={20} placeholder="你的名字" onChange={(e) => setName(e.target.value)} onBlur={() => updateSettings({ nickname: name.trim() })} />
         </Row>
         <Row icon="target" title="每週目標" desc="每週想訓練幾次">
           <Stepper value={s.weeklyGoal} min={1} max={14} onChange={(v) => updateSettings({ weeklyGoal: v })} suffix="次" />

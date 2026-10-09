@@ -12,6 +12,8 @@ import PlanEditor from './pages/PlanEditor'
 import History from './pages/History'
 import Settings from './pages/Settings'
 import Workout from './pages/Workout'
+import Onboarding from './pages/Onboarding'
+import { useStore } from './lib/store'
 
 function route(path: string) {
   const [base, query = ''] = path.split('?')
@@ -45,6 +47,7 @@ const depthOf = (p: string) => p.split('?')[0].split('/').filter(Boolean).length
 
 export default function App() {
   const path = usePath()
+  const { data } = useStore()
   const isWorkout = path.startsWith('/workout')
   const prev = useRef(path)
   const scrolls = useRef(new Map<string, number>())
@@ -108,6 +111,7 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      <AnimatePresence>{!data.settings.onboarded && <Onboarding key="onboarding" />}</AnimatePresence>
       <Toaster />
     </div>
   )

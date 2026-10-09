@@ -6,7 +6,8 @@ import { EX_MAP } from '../data/exercises'
 const KEY = 'bwfit:data:v1'
 
 export const DEFAULT_SETTINGS: Settings = {
-  nickname: 'Bruce',
+  nickname: '',
+  onboarded: false,
   defaultRest: 30,
   prepSeconds: 5,
   weeklyGoal: 3,
@@ -31,7 +32,12 @@ export function sanitize(raw: unknown): AppData {
   if (Array.isArray(r.history)) {
     d.history = r.history.filter((h) => h && typeof h.id === 'string' && typeof h.startedAt === 'number')
   }
-  if (r.settings && typeof r.settings === 'object') d.settings = { ...DEFAULT_SETTINGS, ...r.settings }
+  if (r.settings && typeof r.settings === 'object') {
+    // any previously stored settings = an existing user: never prompt them, keep their nickname as is
+    const st = r.settings as Partial<Settings>
+    d.settings = { ...DEFAULT_SETTINGS, ...st, onboarded: st.onboarded ?? true }
+    if (typeof d.settings.nickname !== 'string') d.settings.nickname = ''
+  }
   return d
 }
 

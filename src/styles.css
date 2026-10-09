@@ -460,3 +460,37 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* faint path traced by the hands (arm circles) */
 .fig-trail path { fill: none; stroke: #e2583e; stroke-opacity: 0.38; stroke-width: 0.9; stroke-dasharray: 2.2 1.8; stroke-linecap: round; }
 .fig-trail path.far { stroke-opacity: 0.22; }
+
+/* ---------- first-launch onboarding ---------- */
+.onb {
+  position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100dvh); z-index: 200;
+  display: flex; align-items: center; justify-content: center; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(var(--sat) + 16px) 18px calc(var(--sab) + 16px); box-sizing: border-box;
+  background: var(--bg);
+}
+.onb-glow {
+  position: fixed; inset: -20% -30% auto; height: 70%; pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 28%, transparent), transparent 70%),
+    radial-gradient(closest-side at 70% 60%, color-mix(in srgb, var(--accent2) 22%, transparent), transparent 70%);
+  filter: blur(10px); opacity: 0.8; animation: onb-float 7s ease-in-out infinite alternate;
+}
+@keyframes onb-float { from { transform: translate3d(-4%, 0, 0) scale(1); } to { transform: translate3d(4%, 3%, 0) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .onb-glow { animation: none; } }
+.onb-card {
+  position: relative; width: 100%; max-width: 400px; margin: auto; text-align: center;
+  background: var(--card); border-radius: 28px; padding: 18px 20px 14px; box-shadow: var(--shadow);
+}
+.onb-fig { width: 62%; max-width: 220px; margin: 0 auto 6px; aspect-ratio: 200 / 154; border-radius: 20px; background: var(--card2); padding: 6px 6px 0; }
+.onb-fig svg { width: 100%; height: 100%; display: block; }
+.onb-hi { margin: 6px 0 2px; font-weight: 700; color: var(--accent); }
+.onb-q { margin: 0 0 6px; font-size: 28px; letter-spacing: 0.5px; }
+.onb-sub { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+.onb-input {
+  width: 100%; box-sizing: border-box; height: 52px; border-radius: 16px; border: 2px solid transparent;
+  background: var(--card2); color: var(--text); font: inherit; font-size: 18px; font-weight: 600; text-align: center;
+  padding: 0 16px; outline: none; transition: border-color 0.2s, background 0.2s;
+}
+.onb-input:focus { border-color: var(--accent); background: var(--card); }
+.onb-input::placeholder { color: var(--muted); font-weight: 500; }
+.onb-go { margin-top: 12px; }
+.onb-skip { margin-top: 6px; padding: 10px 14px; color: var(--muted); font-size: 14px; font-weight: 600; background: none; }
