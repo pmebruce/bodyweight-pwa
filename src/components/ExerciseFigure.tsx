@@ -58,7 +58,7 @@ function buildSpec(front: boolean, headFront: boolean, tg: Targets, lite: boolea
           const ks = by((o) => o.kind === 'm' && toneOf(o.ids, tg.p, tg.s) === tone)
           if (ks.length) items.push({ slot: slot(ks), cls: `m${tone ? ' ' + tone : ''}${far}`, fill: gradOf(tone, L.far) })
         }
-        for (const kind of ['hr', 'ft', 'ln', 'bl', 'br', 'mo', 'ey', 'hl'] as const) {
+        for (const kind of ['hs', 'hr', 'hh', 'ft', 'ln', 'bl', 'br', 'mo', 'ey', 'hl'] as const) {
           const ks = by((o) => o.kind === kind)
           if (ks.length) items.push({ slot: slot(ks), cls: kind + far, fill: kind === 'ft' ? gradOf('', L.far) : undefined })
         }

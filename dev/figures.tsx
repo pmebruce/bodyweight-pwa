@@ -6,7 +6,11 @@ import { FACE } from '../src/components/figure/draw'
 import type { DemoKey } from '../src/types'
 
 const q = new URLSearchParams(location.search)
-if (q.get('hair') === '0') FACE.hair = false
+{
+  const h = q.get('hair')
+  if (h === '0') FACE.hair = ''
+  else if (h === 'A' || h === 'B' || h === 'C') FACE.hair = h
+}
 const phases = (q.get('phases') ?? '0,0.25,0.5,0.75').split(',').map(Number)
 const only = q.get('only')?.split(',') as DemoKey[] | undefined
 const cols = Number(q.get('cols') ?? phases.length)

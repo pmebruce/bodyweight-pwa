@@ -453,70 +453,96 @@ function torsoPiece(fr: Frame, s0: number, s1: number): string {
   return joinSides(fr1, bk)
 }
 
-/* ---------- head: round, friendly, Mii-inspired (original design) ---------- */
-/** face style switches (hair cap on/off) */
-export const FACE = { hair: true }
+/* ---------- head: oval, simple Mii-inspired face (original design) ---------- */
+/** face style: hair variant ('' = bald) */
+export const FACE: { hair: '' | 'A' | 'B' | 'C' } = { hair: 'A' }
 // head frame: x = forward (side) / screen-right (front), y = up; origin = fr.head
-const HY = 0.5 // the round head sits a little higher on the neck than the old one
-const HA = 6.9 // half width (front)
-const HT = 8.2 // crown above the centre line
-const HB = 7.3 // chin below the centre line
+const HY = 0.3
+const HA = 6.0 // half width at the cheekbones
+const HT = 8.0 // crown above the centre line
+const HB = 7.7 // chin below the centre line
+const E_TOP = 2.15 // crown roundness
+const E_JAW = 1.8 // < 2: the face narrows toward a soft chin (egg / 鵝蛋臉)
 const spow = (v: number, e: number) => Math.sign(v) * Math.abs(v) ** e
-/** superellipse egg: rounder crown, slightly fuller cheeks / jaw */
-function headRing(n: number, aF: number, aB: number): V[] {
-  const ps: V[] = []
-  for (let i = 0; i < n; i++) {
-    const t = (i / n) * Math.PI * 2
-    const c = Math.cos(t)
-    const sn = Math.sin(t)
-    const up = sn > 0
-    const e = 2 / (up ? 2.15 : 2.5)
-    ps.push([(c > 0 ? aF : aB) * spow(c, e), (up ? HT : HB) * spow(sn, e) + HY])
-  }
-  return ps
+const gs = (v: number, m: number, w: number) => Math.exp(-(((v - m) / w) ** 2))
+/** front outline point at polar angle t (0 = screen right, π/2 = crown) */
+function frontPt(t: number): V {
+  const c = Math.cos(t)
+  const sn = Math.sin(t)
+  const up = sn > 0
+  const e = 2 / (up ? E_TOP : E_JAW)
+  return [HA * (up ? 1 : 0.97) * spow(c, e), (up ? HT : HB) * spow(sn, e) + HY]
 }
-const HEAD_FRONT: V[] = headRing(32, HA, HA)
-// profile: face (+x) a bit flatter than the round back of the skull, small soft nose bump
-const HEAD_SIDE: V[] = headRing(48, 6.5, 7.3).map(([x, y]) => [x > 0 ? x + 0.6 * Math.exp(-(((y + 0.9) / 0.6) ** 2)) : x, y])
+const HEAD_FRONT: V[] = Array.from({ length: 36 }, (_, i) => frontPt((i / 36) * Math.PI * 2))
+/** profile point: face side (+x) flatter, a defined jaw (squarer lower front), round back of the skull */
+function sidePt(t: number): V {
+  const c = Math.cos(t)
+  const sn = Math.sin(t)
+  const up = sn > 0
+  const fwd = c > 0
+  const e = 2 / (up ? E_TOP : fwd ? 2.7 : 1.7)
+  return [(fwd ? 6.2 : 7.0) * spow(c, e), (up ? HT : HB * (fwd ? 0.97 : 0.8)) * spow(sn, e) + HY]
+}
+const HEAD_SIDE: V[] = Array.from({ length: 52 }, (_, i) => sidePt((i / 52) * Math.PI * 2)).map(([x, y]) => [x > 0 ? x + 0.7 * gs(y, -0.7, 0.62) : x, y])
 /** half width of the front outline at height y */
 function headHalfW(y: number): number {
-  const v = (y - HY) / (y > HY ? HT : HB)
-  const e = y > HY ? 2.15 : 2.5
-  return HA * Math.max(0, 1 - Math.abs(v) ** e) ** (1 / e)
+  const up = y > HY
+  const v = (y - HY) / (up ? HT : HB)
+  const e = up ? E_TOP : E_JAW
+  return HA * (up ? 1 : 0.97) * Math.max(0, 1 - Math.abs(v) ** e) ** (1 / e)
 }
-// hair cap (front): crown + sides down to the ear tops, soft fringe with a slight side part
-const HAIR_FRINGE: V[] = [[6.75, 1.3], [6.1, 3.0], [4.7, 3.55], [2.9, 3.75], [1.1, 4.3], [-0.9, 4.95], [-3.0, 4.75], [-5.0, 3.85], [-6.3, 2.5], [-6.85, 1.3]]
-function hairCap(): V[] {
-  const ps: V[] = []
-  const n = 26
-  for (let i = 0; i <= n; i++) {
-    // outline from the right ear top over the crown to the left ear top, a hair's breadth outside the skull
-    const t = -0.02 + (i / n) * (Math.PI + 0.04)
-    const c = Math.cos(t)
-    const sn = Math.sin(t)
-    const e = 2 / 2.15
-    ps.push([1.045 * HA * spow(c, e), 1.06 * HT * spow(Math.max(0, sn), e) + HY + 0.75 * (1 - Math.max(0, sn))])
-  }
-  return [...ps, ...[...HAIR_FRINGE].reverse()]
+/** polar angle of the front outline at height y on the right (t) / left (π - t) side */
+const tAtY = (y: number) => Math.asin(Math.max(-1, Math.min(1, spow((y - HY) / (y > HY ? HT : HB), y > HY ? E_TOP / 2 : E_JAW / 2))))
+
+/* ---- hair: short faded sides (lighter cap) + darker textured top; variants A quiff, B textured crop, C side sweep ---- */
+interface HairStyle {
+  /** top thickness across the head (front view) by azimuth φ (0 = face centre, + = screen right) */
+  front: (ph: number) => number
+  /** top thickness along the profile by elevation α (0 = forward, π/2 = up, π = back) */
+  side: (al: number) => number
+  /** texture (zig-zag) amplitude and count along the top */
+  tex: [number, number]
+  /** front hairline, screen right → left (front coords) */
+  line: V[]
+  /** profile hairline from the temple to the forehead */
+  sideLine: V[]
+  /** highlight strokes (front coords) */
+  hl: V[][]
+  /** highlight strokes (side coords) */
+  sideHl: V[][]
 }
-const HAIR_FRONT: V[] = hairCap()
-// hair cap (side): crown and back of the head down to the nape, hairline over the forehead, short sideburn by the ear
-const HAIR_SIDE: V[] = (() => {
-  const ps: V[] = []
-  const n = 30
-  // from the forehead hairline (front, ~y 4.4) over the crown to the nape (back, ~y -3.4)
-  const t0 = 0.45
-  const t1 = Math.PI + 0.62
-  for (let i = 0; i <= n; i++) {
-    const t = t0 + ((t1 - t0) * i) / n
-    const c = Math.cos(t)
-    const sn = Math.sin(t)
-    const up = sn > 0
-    const e = 2 / (up ? 2.15 : 2.5)
-    ps.push([(c > 0 ? 6.5 : 7.3) * 1.045 * spow(c, e), (up ? HT * 1.06 : HB * 1.02) * spow(sn, e) + HY])
-  }
-  return [...ps, [-5.3, -2.6], [-3.4, -0.6], [-2.6, 1.9], [-0.9, 2.5], [0.2, 0.7], [0.9, 0.9], [1.3, 2.9], [3.4, 3.45], [5.4, 3.6]]
-})()
+const HAIR: Record<'A' | 'B' | 'C', HairStyle> = {
+  // short textured quiff: volume at the front, swept up and back
+  A: {
+    front: (ph) => 0.6 + 1.35 * gs(ph, 0.1, 0.95),
+    side: (al) => 0.35 + 1.9 * gs(al, 0.95, 0.45) + 0.7 * gs(al, 1.6, 0.6),
+    tex: [0.3, 8],
+    line: [[5.0, 3.4], [4.3, 4.55], [3.2, 5.05], [2.0, 5.25], [0.8, 5.7], [-0.4, 5.95], [-1.6, 5.65], [-2.8, 5.2], [-4.1, 4.55], [-5.0, 3.4]],
+    sideLine: [[1.7, 3.2], [3.2, 4.15], [4.6, 4.85], [5.6, 5.3]],
+    hl: [[[-1.3, 6.4], [-0.5, 8.0], [0.7, 9.4]], [[0.9, 6.0], [1.7, 7.5], [2.9, 8.6]], [[-3.0, 5.6], [-2.4, 7.0], [-1.4, 8.4]]],
+    sideHl: [[[4.4, 6.2], [3.6, 8.1], [1.9, 9.4]], [[2.6, 5.4], [1.4, 7.4], [-0.6, 8.6]]],
+  },
+  // short textured crop: even volume, choppy fringe
+  B: {
+    front: () => 1.05,
+    side: (al) => 0.35 + 1.0 * gs(al, 1.3, 0.75),
+    tex: [0.26, 10],
+    line: [[5.0, 3.4], [3.9, 4.0], [2.8, 4.35], [1.7, 4.05], [0.6, 4.4], [-0.6, 4.1], [-1.7, 4.4], [-2.8, 4.05], [-3.9, 4.2], [-5.0, 3.4]],
+    sideLine: [[1.7, 3.2], [3.2, 3.9], [4.5, 4.2], [5.5, 4.55]],
+    hl: [[[-2.4, 6.6], [-0.4, 7.9], [1.8, 8.0]]],
+    sideHl: [[[3.6, 6.4], [1.6, 8.2], [-1.4, 8.5]]],
+  },
+  // side part, swept to one side
+  C: {
+    front: (ph) => 0.5 + 1.25 * gs(ph, -0.35, 0.75),
+    side: (al) => 0.35 + 1.4 * gs(al, 1.15, 0.55),
+    tex: [0.1, 6],
+    line: [[5.0, 3.4], [4.1, 4.55], [3.0, 5.2], [2.2, 5.35], [1.4, 4.85], [-0.4, 4.5], [-2.3, 4.25], [-3.9, 3.9], [-5.0, 3.4]],
+    sideLine: [[1.7, 3.2], [3.2, 4.2], [4.6, 4.7], [5.6, 5.0]],
+    hl: [[[1.6, 5.4], [0.2, 7.0], [-2.2, 8.0]], [[2.8, 6.0], [1.7, 7.9], [-0.4, 9.0]]],
+    sideHl: [[[4.2, 6.0], [2.6, 8.0], [0.2, 8.9]]],
+  },
+}
 
 function ellipse(c: V, ax: V, ay: V, rx: number, ry: number): string {
   const ps: V[] = []
@@ -552,8 +578,8 @@ export interface Parts {
 }
 
 /* ---------- layer spec (static per view) ---------- */
-/** m muscle, ft feature (skin fill), ey eye, hl eye highlight, bl blush, br brow, mo mouth, hr hair, ln line */
-export type OverKind = 'm' | 'ft' | 'ey' | 'hl' | 'bl' | 'br' | 'mo' | 'hr' | 'ln'
+/** m muscle, ft feature (skin fill), ey eye, hl eye highlight, bl blush, br brow, mo mouth, hs faded hair sides, hr hair, hh hair highlight, ln line */
+export type OverKind = 'm' | 'ft' | 'ey' | 'hl' | 'bl' | 'br' | 'mo' | 'hs' | 'hr' | 'hh' | 'ln'
 export interface Over {
   k: string
   kind: OverKind
@@ -594,7 +620,9 @@ export function figureLayers(front: boolean, headFront: boolean, yaw = 0): Layer
   const legBase = (s: 'N' | 'F') => [`l${s}s`, `l${s}ft`, `l${s}t`, `l${s}hp`]
   const torsoOver: Over[] = [...mOver('t', T.torso, 'tclip'), { k: 't.ln', kind: 'ln', ids: [], clip: 'tclip' }]
   const FACE_OVER: Over[] = [
+    { k: 'hs', kind: 'hs', ids: [] },
     { k: 'hr', kind: 'hr', ids: [] },
+    { k: 'hh', kind: 'hh', ids: [] },
     { k: 'ear', kind: 'ft', ids: [] },
     { k: 'earLn', kind: 'ln', ids: [] },
     { k: 'blush', kind: 'bl', ids: [] },
@@ -772,35 +800,99 @@ export function drawFrame(fr: Frame, fib: Set<string> = new Set()): Parts {
     }
     out.head = closed(HEAD_FRONT.map(H))
     if (!Y) {
-      out.earL = ellipse(H([-6.95, -0.2]), fw, up, 1.35, 2.0)
-      out.earR = ellipse(H([6.95, -0.2]), fw, up, 1.35, 2.0)
+      out.earL = ellipse(H([-6.0, -0.1]), fw, up, 1.15, 1.8)
+      out.earR = ellipse(H([6.0, -0.1]), fw, up, 1.15, 1.8)
       out.ear = ''
       out.earLn = ''
     } else {
       // only the near ear (screen left) shows, sitting inside the outline toward the back of the head
       const ex = HA * Math.sin(-Math.PI / 2 + Y)
-      out.ear = ellipse(H([ex, -0.2]), fw, up, 1.35 * Math.max(0.35, Math.sin(Y)) + 0.25, 2.0)
+      out.ear = ellipse(H([ex, -0.1]), fw, up, 1.15 * Math.max(0.35, Math.sin(Y)) + 0.25, 1.8)
       out.earLn = open([H([ex + 0.35, 1.0]), H([ex - 0.25, 0.1]), H([ex + 0.3, -1.1])])
     }
-    out.hr = FACE.hair ? closed(HAIR_FRONT.map((q, i) => (i <= 26 ? H(q) : F(q)))) : ''
-    const eyes: V[] = [[2.45, 0.35], [-2.45, 0.35]]
-    out.eye = eyes.map((c) => bean(F, c, 0.78 * sq(c), 1.12)).join('')
-    out.eyeHl = eyes.map((c) => bean(F, [c[0] + 0.24, c[1] + 0.45], 0.3 * sq(c), 0.3)).join('')
-    out.brow = eyes.map((c) => open([F([c[0] - 0.85, c[1] + 2.15]), F([c[0], c[1] + 2.5]), F([c[0] + 0.85, c[1] + 2.2])])).join('')
-    out.face = open([F([-0.42, -1.55]), F([0, -1.85]), F([0.42, -1.55])])
-    out.mouth = open([F([-1.45, -3.55]), F([-0.75, -4.1]), F([0, -4.25]), F([0.75, -4.1]), F([1.45, -3.55])])
-    out.blush = ([[3.95, -2.15], [-3.95, -2.15]] as V[]).map((c) => bean(F, c, 1.15 * sq(c), 0.62)).join('')
+    const eyes: V[] = [[2.25, 0.45], [-2.25, 0.45]]
+    out.eye = eyes.map((c) => bean(F, c, 0.6 * sq(c), 0.86)).join('')
+    out.eyeHl = eyes.map((c) => bean(F, [c[0] + 0.2, c[1] + 0.34], 0.2 * sq(c), 0.2)).join('')
+    // straighter, stronger brows: inner end slightly lower
+    out.brow = eyes.map((c) => { const o = Math.sign(c[0]); return open([F([c[0] - o * 0.95, c[1] + 1.82]), F([c[0], c[1] + 2.0]), F([c[0] + o * 1.0, c[1] + 1.88])]) }).join('')
+    out.face = open([F([0.3, -0.5]), F([0.5, -1.7]), F([-0.15, -1.95])])
+    out.mouth = open([F([-1.25, -4.05]), F([-0.35, -4.3]), F([0.55, -4.25]), F([1.3, -3.95])])
+    out.blush = ''
+    // hair: lighter faded cap (sides) + darker top mass with texture, highlight strokes
+    const hs = FACE.hair ? HAIR[FACE.hair] : undefined
+    out.hr = out.hs = out.hh = ''
+    if (hs) {
+      const sY = Y ? Math.sin(Y) / Math.SQRT1_2 : 0 // 0 front … 1 at 45°
+      /** silhouette arc from polar angle t0 to t1, pushed out by th(t) */
+      const arc = (t0: number, t1: number, n: number, th: (t: number, i: number) => number): V[] =>
+        Array.from({ length: n + 1 }, (_, i) => {
+          const t = t0 + ((t1 - t0) * i) / n
+          const q = frontPt(t)
+          const r = Math.hypot(q[0], q[1] - HY)
+          const k = 1 + th(t, i) / r
+          return [q[0] * k, HY + (q[1] - HY) * k]
+        })
+      // faded cap: left silhouette (lower in 3/4 = back of the head shows) → crown → right temple, then sideburns + hairline
+      const yL = 1.4 - 2.8 * sY
+      const capTop = arc(tAtY(1.5), Math.PI - tAtY(yL), 30, () => 0.22)
+      const capIn: V[] = ([[-5.0, 3.4], [-5.55, 1.6], [-5.7, 0.2], [-6.0, -0.2]] as V[]).map((q) => F(q))
+      out.hs = closed([...capTop.map(H), ...[...capIn].reverse(), ...[...hs.line].reverse().map((q) => F(q)), F([5.3, 2.4])])
+      // dark top: thickness by azimuth (rotated with the head), texture zig-zag
+      const tR = tAtY(3.2)
+      const tLft = Math.PI - tAtY(3.2 - 1.6 * sY)
+      const n = 40
+      const top = arc(tR, tLft, n, (t, i) => {
+        const ph = Math.PI / 2 - t - Y
+        const edge = Math.min(1, Math.sin(Math.min(t - tR, tLft - t) * 1.6) ** 0.6 || 0)
+        const zig = i % Math.max(1, Math.round(n / hs.tex[1])) === 0 ? hs.tex[0] : -hs.tex[0] * 0.25
+        return (hs.front(ph) + zig) * edge + 0.22
+      })
+      out.hr = closed([...top.map(H), ...[...hs.line].reverse().map((q) => F(q))])
+      const FH = (q: V): V => {
+        // highlights sit on top of the head, above the skull rim: keep their azimuth mapping well-behaved
+        if (!Y) return H(q)
+        const w = Math.max(3.2, headHalfW(Math.min(q[1], HT - 1)))
+        const ph = Math.asin(Math.max(-1, Math.min(1, q[0] / w)))
+        return H([w * Math.sin(Math.min(Math.PI / 2, ph + Y)), q[1]])
+      }
+      out.hh = hs.hl.map((l) => open(l.map(FH))).join('')
+    }
   } else {
     out.head = closed(HEAD_SIDE.map(H))
-    out.hr = FACE.hair ? closed(HAIR_SIDE.map(H)) : ''
-    out.ear = ellipse(H([-0.9, -0.2]), fw, up, 1.45, 2.1)
-    out.earLn = open([H([-0.6, 1.1]), H([-1.4, 0.1]), H([-0.7, -1.1])])
-    out.eye = bean(H, [4.55, 0.35], 0.56, 1.1)
-    out.eyeHl = bean(H, [4.72, 0.8], 0.24, 0.28)
-    out.brow = open([H([3.75, 2.55]), H([4.6, 2.85]), H([5.45, 2.6])])
+    out.ear = ellipse(H([-0.9, -0.2]), fw, up, 1.25, 1.85)
+    out.earLn = open([H([-0.65, 0.9]), H([-1.3, 0.05]), H([-0.7, -1.0])])
+    out.eye = bean(H, [4.45, 0.45], 0.44, 0.84)
+    out.eyeHl = bean(H, [4.6, 0.8], 0.17, 0.2)
+    out.brow = open([H([3.55, 2.35]), H([4.45, 2.5]), H([5.45, 2.45])])
     out.face = ''
-    out.mouth = open([H([4.35, -3.7]), H([4.95, -4.15]), H([5.45, -4.0])])
-    out.blush = bean(H, [3.4, -2.15], 1.0, 0.6)
+    out.mouth = open([H([4.45, -4.0]), H([5.0, -4.2]), H([5.4, -4.05])])
+    out.blush = ''
+    const hs = FACE.hair ? HAIR[FACE.hair] : undefined
+    out.hr = out.hs = out.hh = ''
+    if (hs) {
+      const arcS = (a0: number, a1: number, n: number, th: (al: number, i: number) => number): V[] =>
+        Array.from({ length: n + 1 }, (_, i) => {
+          const al = a0 + ((a1 - a0) * i) / n
+          const q = sidePt(al)
+          const r = Math.hypot(q[0], q[1] - HY)
+          const k = 1 + th(al, i) / r
+          return [q[0] * k, HY + (q[1] - HY) * k]
+        })
+      const f0 = hs.sideLine[hs.sideLine.length - 1]
+      const aF = Math.atan2(f0[1] - HY, f0[0]) // forehead hairline angle
+      // faded cap: forehead → crown → nape, back in along the nape / behind and above the ear, sideburn, temple
+      const cap = arcS(aF, Math.PI + 0.62, 34, () => 0.22)
+      out.hs = closed(([...cap, [-5.4, -2.7], [-3.2, -1.1], [-2.15, 1.75], [-0.35, 2.2], [0.35, 0.3], [1.05, 0.35], ...hs.sideLine] as V[]).map(H))
+      const n = 36
+      const aB = Math.PI - 0.28
+      const top = arcS(aF, aB, n, (al, i) => {
+        const edge = Math.min(1, Math.sin(Math.min(al - aF, aB - al) * 1.8) ** 0.6 || 0)
+        const zig = i % Math.max(1, Math.round(n / hs.tex[1])) === 0 ? hs.tex[0] : -hs.tex[0] * 0.25
+        return (hs.side(al) + zig) * edge + 0.22
+      })
+      out.hr = closed(([...top, [-5.6, 2.2], [-3.2, 3.0], [-0.6, 3.35], ...hs.sideLine] as V[]).map(H))
+      out.hh = hs.sideHl.map((l) => open(l.map(H))).join('')
+    }
   }
   return out
 }
