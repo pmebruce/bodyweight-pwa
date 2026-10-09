@@ -455,7 +455,7 @@ function torsoPiece(fr: Frame, s0: number, s1: number): string {
 
 /* ---------- head: oval, simple Mii-inspired face (original design) ---------- */
 /** face style: hair variant ('' = bald) */
-export const FACE: { hair: '' | 'A' | 'B' | 'C' } = { hair: 'A' }
+export const FACE: { hair: '' | 'A' | 'B' | 'C' } = { hair: 'C' }
 // head frame: x = forward (side) / screen-right (front), y = up; origin = fr.head
 const HY = 0.3
 const HA = 6.0 // half width at the cheekbones
