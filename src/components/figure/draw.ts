@@ -453,13 +453,71 @@ function torsoPiece(fr: Frame, s0: number, s1: number): string {
   return joinSides(fr1, bk)
 }
 
-/* ---------- head (bald) ---------- */
-const HEAD_SIDE: V[] = [
-  [0, 7.3], [4.2, 6.0], [6.2, 3.0], [6.6, 0.4], [7.3, -1.2], [6.5, -2.3], [6.4, -3.3], [6.0, -4.3], [4.5, -6.3], [1.6, -6.9], [-1.5, -5.5], [-4.6, -4.1], [-6.4, -1.0], [-6.3, 3.0], [-3.8, 6.2],
-]
-const HEAD_FRONT: V[] = [
-  [0, 7.6], [4.5, 6.4], [6.2, 2.8], [6.0, -1.4], [5.0, -4.6], [2.7, -6.7], [0, -7.3], [-2.7, -6.7], [-5.0, -4.6], [-6.0, -1.4], [-6.2, 2.8], [-4.5, 6.4],
-]
+/* ---------- head: round, friendly, Mii-inspired (original design) ---------- */
+/** face style switches (hair cap on/off) */
+export const FACE = { hair: true }
+// head frame: x = forward (side) / screen-right (front), y = up; origin = fr.head
+const HY = 0.5 // the round head sits a little higher on the neck than the old one
+const HA = 6.9 // half width (front)
+const HT = 8.2 // crown above the centre line
+const HB = 7.3 // chin below the centre line
+const spow = (v: number, e: number) => Math.sign(v) * Math.abs(v) ** e
+/** superellipse egg: rounder crown, slightly fuller cheeks / jaw */
+function headRing(n: number, aF: number, aB: number): V[] {
+  const ps: V[] = []
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2
+    const c = Math.cos(t)
+    const sn = Math.sin(t)
+    const up = sn > 0
+    const e = 2 / (up ? 2.15 : 2.5)
+    ps.push([(c > 0 ? aF : aB) * spow(c, e), (up ? HT : HB) * spow(sn, e) + HY])
+  }
+  return ps
+}
+const HEAD_FRONT: V[] = headRing(32, HA, HA)
+// profile: face (+x) a bit flatter than the round back of the skull, small soft nose bump
+const HEAD_SIDE: V[] = headRing(48, 6.5, 7.3).map(([x, y]) => [x > 0 ? x + 0.6 * Math.exp(-(((y + 0.9) / 0.6) ** 2)) : x, y])
+/** half width of the front outline at height y */
+function headHalfW(y: number): number {
+  const v = (y - HY) / (y > HY ? HT : HB)
+  const e = y > HY ? 2.15 : 2.5
+  return HA * Math.max(0, 1 - Math.abs(v) ** e) ** (1 / e)
+}
+// hair cap (front): crown + sides down to the ear tops, soft fringe with a slight side part
+const HAIR_FRINGE: V[] = [[6.75, 1.3], [6.1, 3.0], [4.7, 3.55], [2.9, 3.75], [1.1, 4.3], [-0.9, 4.95], [-3.0, 4.75], [-5.0, 3.85], [-6.3, 2.5], [-6.85, 1.3]]
+function hairCap(): V[] {
+  const ps: V[] = []
+  const n = 26
+  for (let i = 0; i <= n; i++) {
+    // outline from the right ear top over the crown to the left ear top, a hair's breadth outside the skull
+    const t = -0.02 + (i / n) * (Math.PI + 0.04)
+    const c = Math.cos(t)
+    const sn = Math.sin(t)
+    const e = 2 / 2.15
+    ps.push([1.045 * HA * spow(c, e), 1.06 * HT * spow(Math.max(0, sn), e) + HY + 0.75 * (1 - Math.max(0, sn))])
+  }
+  return [...ps, ...[...HAIR_FRINGE].reverse()]
+}
+const HAIR_FRONT: V[] = hairCap()
+// hair cap (side): crown and back of the head down to the nape, hairline over the forehead, short sideburn by the ear
+const HAIR_SIDE: V[] = (() => {
+  const ps: V[] = []
+  const n = 30
+  // from the forehead hairline (front, ~y 4.4) over the crown to the nape (back, ~y -3.4)
+  const t0 = 0.45
+  const t1 = Math.PI + 0.62
+  for (let i = 0; i <= n; i++) {
+    const t = t0 + ((t1 - t0) * i) / n
+    const c = Math.cos(t)
+    const sn = Math.sin(t)
+    const up = sn > 0
+    const e = 2 / (up ? 2.15 : 2.5)
+    ps.push([(c > 0 ? 6.5 : 7.3) * 1.045 * spow(c, e), (up ? HT * 1.06 : HB * 1.02) * spow(sn, e) + HY])
+  }
+  return [...ps, [-5.3, -2.6], [-3.4, -0.6], [-2.6, 1.9], [-0.9, 2.5], [0.2, 0.7], [0.9, 0.9], [1.3, 2.9], [3.4, 3.45], [5.4, 3.6]]
+})()
+
 function ellipse(c: V, ax: V, ay: V, rx: number, ry: number): string {
   const ps: V[] = []
   for (let i = 0; i < 8; i++) {
@@ -494,7 +552,8 @@ export interface Parts {
 }
 
 /* ---------- layer spec (static per view) ---------- */
-export type OverKind = 'm' | 'ft' | 'ey' | 'ln'
+/** m muscle, ft feature (skin fill), ey eye, hl eye highlight, bl blush, br brow, mo mouth, hr hair, ln line */
+export type OverKind = 'm' | 'ft' | 'ey' | 'hl' | 'bl' | 'br' | 'mo' | 'hr' | 'ln'
 export interface Over {
   k: string
   kind: OverKind
@@ -534,16 +593,18 @@ export function figureLayers(front: boolean, headFront: boolean, yaw = 0): Layer
     front ? [] : (s === 'N' ? HIP_PATCHES_N : HIP_PATCHES_F).map(([m, ids]) => ({ k: `l${s}.${m.n}`, kind: 'm' as const, ids, clip: `l${s}tc` }))
   const legBase = (s: 'N' | 'F') => [`l${s}s`, `l${s}ft`, `l${s}t`, `l${s}hp`]
   const torsoOver: Over[] = [...mOver('t', T.torso, 'tclip'), { k: 't.ln', kind: 'ln', ids: [], clip: 'tclip' }]
-  const head: Layer = {
-    id: 'hd',
-    far: false,
-    base: front ? ['earL', 'earR', 'head'] : ['head'],
-    over: [
-      ...(front ? [] : [{ k: 'ear', kind: 'ft' as const, ids: [] }]),
-      { k: 'eye', kind: 'ey', ids: [] },
-      { k: 'face', kind: 'ln', ids: [] },
-    ],
-  }
+  const FACE_OVER: Over[] = [
+    { k: 'hr', kind: 'hr', ids: [] },
+    { k: 'ear', kind: 'ft', ids: [] },
+    { k: 'earLn', kind: 'ln', ids: [] },
+    { k: 'blush', kind: 'bl', ids: [] },
+    { k: 'face', kind: 'ln', ids: [] },
+    { k: 'brow', kind: 'br', ids: [] },
+    { k: 'mouth', kind: 'mo', ids: [] },
+    { k: 'eye', kind: 'ey', ids: [] },
+    { k: 'eyeHl', kind: 'hl', ids: [] },
+  ]
+  const head: Layer = { id: 'hd', far: false, base: front && !yaw ? ['earL', 'earR', 'head'] : ['head'], over: FACE_OVER }
   if (front && yaw) {
     // 3/4: figure faces screen right → the N limbs are behind the body (darker), the F limbs in front
     const body: Layer = {
@@ -553,8 +614,7 @@ export function figureLayers(front: boolean, headFront: boolean, yaw = 0): Layer
       over: [...shinOver('F'), ...thighOver('F'), ...torsoOver],
     }
     const farLeg: Layer = { id: 'lN', far: true, base: legBase('N'), over: [...shinOver('N'), ...thighOver('N')] }
-    const head34: Layer = { id: 'hd', far: false, base: ['head'], over: [{ k: 'ear', kind: 'ft', ids: [] }, { k: 'eye', kind: 'ey', ids: [] }, { k: 'face', kind: 'ln', ids: [] }] }
-    return headFront ? [arm('N', true), farLeg, body, arm('F', false), head34] : [arm('N', true), farLeg, body, head34, arm('F', false)]
+    return headFront ? [arm('N', true), farLeg, body, arm('F', false), head] : [arm('N', true), farLeg, body, head, arm('F', false)]
   }
   if (front) {
     return [
@@ -689,39 +749,58 @@ export function drawFrame(fr: Frame, fib: Set<string> = new Set()): Parts {
   const up = hd
   const fw = dir(fr.headA - 90)
   const H = (q: V): V => add(add(fr.head, fw, q[0]), up, q[1])
-  if (fr.front && fr.yaw) {
-    // 3/4: features sit on the face (depth z), turned toward screen right; only the near ear shows
-    const r = (fr.yaw * Math.PI) / 180
-    const cy = Math.cos(r)
-    const sy = Math.sin(r)
-    const H3 = (q: V, z: number): V => add(add(fr.head, fw, q[0] * cy + z * sy), up, q[1])
-    out.head = closed(HEAD_FRONT.map((q) => H3([q[0] * (1 + 0.12 * sy), q[1]], q[0] > 0 ? 0.9 : 0)))
-    out.ear = ellipse(H3([-5.9, -0.4], -0.8), fw, up, 1.25 * (0.55 + 0.45 * sy), 2.1)
-    out.eye = ellipse(H3([2.3, 0.2], 5.0), fw, up, 0.8 * (0.35 + 0.65 * cy), 0.42) + ellipse(H3([-2.3, 0.2], 5.0), fw, up, 0.8 * (0.35 + 0.65 * cy), 0.42)
-    out.face =
-      open([H3([1.1, 1.6], 5.5), H3([2.3, 2.0], 5.4), H3([3.5, 1.6], 4.8)]) +
-      open([H3([-1.1, 1.6], 5.5), H3([-2.3, 2.0], 5.4), H3([-3.5, 1.6], 4.8)]) +
-      open([H3([0.15, 0.6], 6.2), H3([0.55, -1.9], 7.2), H3([-0.5, -2.4], 6.4)]) +
-      open([H3([-1.3, -4.25], 5.4), H3([0, -4.45], 5.8), H3([1.3, -4.25], 5.4)])
-  } else if (fr.front) {
+  const bean = (P: (q: V) => V, c: V, rx: number, ry: number) => ellipse(P(c), fw, up, rx, ry)
+  if (fr.front) {
+    // front & 3/4: features live on a round head; with yaw they slide around it (azimuth + yaw) and squash near the rim
+    const Y = fr.yaw ? (fr.yaw * Math.PI) / 180 : 0
+    const az = (q: V) => {
+      const w = Math.max(0.5, headHalfW(q[1]))
+      const ph = Math.asin(Math.max(-1, Math.min(1, q[0] / w)))
+      return { w, ph }
+    }
+    /** front-view face point → screen (on the rotated head) */
+    const F = (q: V): V => {
+      if (!Y) return H(q)
+      const { w, ph } = az(q)
+      return H([w * Math.sin(Math.min(Math.PI / 2, ph + Y)), q[1]])
+    }
+    /** horizontal squash of a feature at q */
+    const sq = (q: V) => {
+      if (!Y) return 1
+      const { ph } = az(q)
+      return Math.max(0.18, Math.cos(ph + Y))
+    }
     out.head = closed(HEAD_FRONT.map(H))
-    out.earL = ellipse(H([-6.0, -0.4]), fw, up, 1.3, 2.1)
-    out.earR = ellipse(H([6.0, -0.4]), fw, up, 1.3, 2.1)
-    out.eye = ellipse(H([2.3, 0.2]), fw, up, 0.8, 0.42) + ellipse(H([-2.3, 0.2]), fw, up, 0.8, 0.42)
-    out.face =
-      open([H([1.1, 1.6]), H([2.3, 2.0]), H([3.5, 1.6])]) +
-      open([H([-1.1, 1.6]), H([-2.3, 2.0]), H([-3.5, 1.6])]) +
-      open([H([0.15, 0.6]), H([0.55, -1.9]), H([-0.5, -2.4])]) +
-      open([H([-1.3, -4.25]), H([0, -4.45]), H([1.3, -4.25])])
+    if (!Y) {
+      out.earL = ellipse(H([-6.95, -0.2]), fw, up, 1.35, 2.0)
+      out.earR = ellipse(H([6.95, -0.2]), fw, up, 1.35, 2.0)
+      out.ear = ''
+      out.earLn = ''
+    } else {
+      // only the near ear (screen left) shows, sitting inside the outline toward the back of the head
+      const ex = HA * Math.sin(-Math.PI / 2 + Y)
+      out.ear = ellipse(H([ex, -0.2]), fw, up, 1.35 * Math.max(0.35, Math.sin(Y)) + 0.25, 2.0)
+      out.earLn = open([H([ex + 0.35, 1.0]), H([ex - 0.25, 0.1]), H([ex + 0.3, -1.1])])
+    }
+    out.hr = FACE.hair ? closed(HAIR_FRONT.map((q, i) => (i <= 26 ? H(q) : F(q)))) : ''
+    const eyes: V[] = [[2.45, 0.35], [-2.45, 0.35]]
+    out.eye = eyes.map((c) => bean(F, c, 0.78 * sq(c), 1.12)).join('')
+    out.eyeHl = eyes.map((c) => bean(F, [c[0] + 0.24, c[1] + 0.45], 0.3 * sq(c), 0.3)).join('')
+    out.brow = eyes.map((c) => open([F([c[0] - 0.85, c[1] + 2.15]), F([c[0], c[1] + 2.5]), F([c[0] + 0.85, c[1] + 2.2])])).join('')
+    out.face = open([F([-0.42, -1.55]), F([0, -1.85]), F([0.42, -1.55])])
+    out.mouth = open([F([-1.45, -3.55]), F([-0.75, -4.1]), F([0, -4.25]), F([0.75, -4.1]), F([1.45, -3.55])])
+    out.blush = ([[3.95, -2.15], [-3.95, -2.15]] as V[]).map((c) => bean(F, c, 1.15 * sq(c), 0.62)).join('')
   } else {
     out.head = closed(HEAD_SIDE.map(H))
-    out.ear = ellipse(H([-1.4, -0.7]), fw, up, 1.45, 2.2)
-    out.eye = ellipse(H([4.7, 0.3]), fw, up, 0.6, 0.4)
-    out.face =
-      open([H([3.4, 1.7]), H([4.9, 2.0]), H([6.4, 1.5])]) +
-      open([H([5.6, -3.75]), H([6.35, -3.7])]) +
-      open([H([-2.4, -2.5]), H([-1.0, -4.7]), H([1.4, -6.1])]) +
-      open([H([-1.9, 0.6]), H([-1.0, -0.2]), H([-1.6, -1.4])])
+    out.hr = FACE.hair ? closed(HAIR_SIDE.map(H)) : ''
+    out.ear = ellipse(H([-0.9, -0.2]), fw, up, 1.45, 2.1)
+    out.earLn = open([H([-0.6, 1.1]), H([-1.4, 0.1]), H([-0.7, -1.1])])
+    out.eye = bean(H, [4.55, 0.35], 0.56, 1.1)
+    out.eyeHl = bean(H, [4.72, 0.8], 0.24, 0.28)
+    out.brow = open([H([3.75, 2.55]), H([4.6, 2.85]), H([5.45, 2.6])])
+    out.face = ''
+    out.mouth = open([H([4.35, -3.7]), H([4.95, -4.15]), H([5.45, -4.0])])
+    out.blush = bean(H, [3.4, -2.15], 1.0, 0.6)
   }
   return out
 }

@@ -2,9 +2,11 @@ import { createRoot } from 'react-dom/client'
 import '../src/styles.css'
 import ExerciseFigure from '../src/components/ExerciseFigure'
 import { DEMOS } from '../src/components/figure/demos'
+import { FACE } from '../src/components/figure/draw'
 import type { DemoKey } from '../src/types'
 
 const q = new URLSearchParams(location.search)
+if (q.get('hair') === '0') FACE.hair = false
 const phases = (q.get('phases') ?? '0,0.25,0.5,0.75').split(',').map(Number)
 const only = q.get('only')?.split(',') as DemoKey[] | undefined
 const cols = Number(q.get('cols') ?? phases.length)
