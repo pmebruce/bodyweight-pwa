@@ -9,7 +9,7 @@
  */
 import type { MuscleId } from './anatomy'
 import { GLUTE_MAX, GLUTE_MED, GLUTE_MIN, HIP_FRONT, HIP_SIDE, hipSkin, skin, skinThigh, type HipSkin, type Patch } from './hip'
-import { add, dir, L, len, sub, type Frame, type LimbOut, type V } from './rig'
+import { add, dir, L, len, sub, type Frame, type Hand, type LimbOut, type V } from './rig'
 
 /** fast 1-decimal number formatting (float → string is the hot spot of the per-frame path building) */
 function f1(n: number): string {
@@ -564,13 +564,44 @@ export const FOOT_SIDE: V[] = [
 const FOOT_FRONT: V[] = [
   [-2.3, -1.8], [2.3, -1.8], [2.8, 1.0], [3.7, 3.3], [3.3, 4.6], [-2.9, 4.6], [-3.4, 3.3], [-2.9, 1.0],
 ]
-// hand: x along the hand, y across (w)
-const HAND: V[] = [
-  [0.1, -1.8], [2.0, -2.1], [3.9, -1.9], [5.3, -1.2], [5.8, -0.1], [5.4, 1.1], [3.9, 1.8], [2.0, 2.1], [0.1, 1.8],
-]
+// hands: x along the hand from the wrist, y across with + = thumb side
+interface HandShape {
+  o: V[]
+  /** detail strokes: finger folds, knuckles, thumb */
+  ln: V[][]
+}
+const HANDS: Record<Hand, HandShape> = {
+  // compact rounded block a bit wider than the wrist, a row of curled-finger bumps, thumb wrapped across the front
+  fist: {
+    o: [[0, -1.3], [0.9, -1.95], [2.2, -2.2], [3.35, -2.1], [4.1, -1.7], [4.55, -1.2], [4.25, -0.68], [4.65, -0.15], [4.3, 0.38], [4.6, 0.92], [4.2, 1.5], [3.3, 2.05], [2.1, 2.2], [0.9, 1.85], [0, 1.3]],
+    ln: [[[2.3, -1.3], [3.4, -1.2], [4.25, -0.68]], [[2.35, -0.45], [3.45, -0.42], [4.3, 0.38]], [[1.7, 0.3], [2.9, 0.75], [3.6, 1.2], [4.2, 1.5]]],
+  },
+  // wrapped round a bar / edge: knuckle ridge across the back of the hand, fingers curled over
+  grip: {
+    o: [[0, -1.35], [1.0, -1.85], [2.3, -2.05], [3.5, -1.9], [4.3, -1.25], [4.6, -0.3], [4.5, 0.6], [4.0, 1.5], [3.0, 2.0], [1.9, 2.05], [0.9, 1.75], [0, 1.3]],
+    ln: [[[2.7, -1.75], [3.25, -0.6], [3.35, 0.5], [2.95, 1.6]], [[3.3, -0.65], [4.3, -0.6]], [[3.35, 0.35], [4.3, 0.4]]],
+  },
+  // palm + fingers held together (rounded fingertip scallops), thumb a separate lobe
+  open: {
+    o: [[0, -1.3], [2.5, -1.65], [4.0, -1.6], [5.4, -1.35], [6.2, -1.05], [6.45, -0.6], [6.25, -0.3], [6.6, 0.05], [6.35, 0.38], [6.45, 0.72], [5.9, 1.02], [4.6, 1.05], [3.65, 0.95], [3.9, 1.5], [3.6, 2.1], [2.8, 2.3], [2.0, 2.0], [1.0, 1.6], [0, 1.3]],
+    ln: [[[4.3, -0.38], [5.6, -0.34], [6.25, -0.3]], [[4.4, 0.36], [5.6, 0.37], [6.3, 0.38]], [[1.6, 1.1], [2.8, 1.25], [3.5, 0.98]]],
+  },
+  // palm flat on a surface, seen edge-on: fingers forward, the thumb a small lobe on top
+  flat: {
+    o: [[0, -1.0], [2.0, -1.1], [4.0, -1.0], [5.6, -0.8], [6.2, -0.45], [6.25, -0.05], [5.8, 0.25], [4.8, 0.35], [4.0, 0.45], [3.75, 0.95], [3.05, 1.4], [2.0, 1.5], [1.0, 1.32], [0, 1.0]],
+    ln: [[[4.2, -0.3], [5.2, -0.26], [5.95, -0.2]], [[3.85, 0.48], [3.1, 0.8], [2.2, 0.95]], [[3.9, -0.95], [4.0, -0.2], [4.05, 0.42]]],
+  },
+  // relaxed: fingers loosely curled toward the thumb side
+  relax: {
+    o: [[0, -1.45], [1.6, -1.75], [3.2, -1.7], [4.4, -1.2], [5.05, -0.3], [4.95, 0.6], [4.4, 1.15], [3.75, 1.05], [3.4, 1.55], [2.6, 2.05], [1.6, 2.0], [0.8, 1.65], [0, 1.35]],
+    ln: [[[3.5, -1.25], [4.25, -0.65], [4.45, 0.25]], [[1.3, 1.5], [2.3, 1.45], [3.1, 1.25]]],
+  },
+}
 /** centre of the drawn hand (palm), e.g. for motion trails */
 export function handCentre(lb: LimbOut): V {
-  return add(lb.end, dir(lb.ea, lb.fc), 0.3 + 3.0)
+  const o = HANDS[lb.hand ?? 'relax'].o
+  const cx = o.reduce((m, q) => m + q[0], 0) / o.length
+  return add(lb.end, dir(lb.ea, lb.fc), cx - 0.2)
 }
 
 export interface Parts {
@@ -610,7 +641,7 @@ export function figureLayers(front: boolean, headFront: boolean, yaw = 0): Layer
     id: `a${s}`,
     far,
     base: [`a${s}f`, `a${s}h`, `a${s}u`],
-    over: [...mOver(`a${s}`, T.f, `a${s}f`), ...(front ? [] : [{ k: `a${s}.th`, kind: 'ft' as const, ids: [] }]), ...mOver(`a${s}`, T.u, `a${s}u`)],
+    over: [...mOver(`a${s}`, T.f, `a${s}f`), { k: `a${s}.hd`, kind: 'ln' as const, ids: [] }, ...mOver(`a${s}`, T.u, `a${s}u`)],
   })
   const shinOver = (s: 'N' | 'F'): Over[] => [...mOver(`l${s}`, T.s, `l${s}s`), { k: `l${s}.toe`, kind: 'ln' as const, ids: [] }]
   // thigh muscles + glutes are clipped to thigh ∪ hip piece, so they run into the pelvis without a seam
@@ -691,11 +722,17 @@ function limbParts(fr: Frame, lb: LimbOut, arm: boolean, out: Parts, pre: string
     const gf = segOf(lb.mid, lb.end, sg)
     if (lb.fs < 0.55) for (const m of T.f) out[`${pre}.${m.n}`] = ''
     else muscles(out, pre, gf, T.f, fib)
-    // hand
+    // hand: shape per hand state, thumb toward the front of the arm (side) / the body's midline (front)
     const hd = dir(lb.ea, lb.fc)
-    const gh: Seg = { o: add(lb.end, hd, 0.3), u: hd, n: [-hd[1] * sg, hd[0] * sg], l: 1 }
-    out[pre + 'h'] = closed(HAND.map((q) => at(gh, q[0], q[1])))
-    if (!front) out[pre + '.th'] = spindle(gh, { n: 'th', ids: [], a: [0.6, -1.3], b: [3.4, -1.9], w: [0.8, 0.85, 0.5] }, 1, false)[0]
+    const ts = front ? -lb.fc : Math.sign(fr.axis[0] * fr.fwd[1] - fr.axis[1] * fr.fwd[0]) || 1
+    const tn: V = [ts * hd[1], -ts * hd[0]]
+    const shape = HANDS[lb.hand ?? 'relax']
+    // forearm pointing at the camera: the hand is seen end-on → shorter
+    const sx = front && lb.fs < 0.8 ? Math.max(0.6, lb.fs + 0.2) : 1
+    const gh: Seg = { o: add(lb.end, hd, -0.2), u: hd, n: tn, l: 1 }
+    const P = (q: V) => at(gh, q[0] * sx, q[1])
+    out[pre + 'h'] = closed(shape.o.map(P))
+    out[pre + '.hd'] = shape.ln.map((l) => open(l.map(P))).join('')
   } else {
     out[pre + 't'] = limb(lb.root, lb.mid, front ? 5.4 : 6.0, 4.2, 0.7 * s, 1.1 * s, 0.42)
     out[pre + 's'] = limb(lb.mid, lb.end, 4.1, 2.4, 1.6 * s, 0.3 * s, 0.28)

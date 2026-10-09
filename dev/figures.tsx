@@ -77,7 +77,7 @@ window.__probe = () => {
   const res: Record<string, unknown> = {}
   for (const [name, d] of Object.entries(DEMOS)) {
     const durs = d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur))
-    const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw })
+    const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw, hand: d.hand })
     let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity, miss = 0
     const keyInfo: string[] = []
     for (let i = 0; i < d.keys.length; i++) {
@@ -122,7 +122,7 @@ declare global {
 window.__hip = (k, phase) => {
   const d = DEMOS[k as DemoKey]
   const durs = d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur))
-  const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw })
+  const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw, hand: d.hand })
   const fr = groundClamp(rig.at(phase), 128)
   return fr.p
 }

@@ -82,7 +82,7 @@ function buildSpec(front: boolean, headFront: boolean, tg: Targets, lite: boolea
 export default function ExerciseFigure({ demo, size = '100%', playing = true, speed = 1, className, phase, highlight = true }: Props) {
   const d = DEMOS[demo]
   const durs = useMemo(() => d.keys.map((_, i) => (Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur)), [d])
-  const rig = useMemo(() => new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw }), [d, durs])
+  const rig = useMemo(() => new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: d.yaw, hand: d.hand }), [d, durs])
   const tg = TARGETS[demo]
   // thumbnails (< 180 px wide) use a lighter element tree: merged muscles per segment, no fibres
   const [lite, setLite] = useState(false)

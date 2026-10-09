@@ -1,5 +1,5 @@
 import type { DemoKey } from '../../types'
-import { add, dir, L, type Key, type LimbKey, type V } from './rig'
+import { add, dir, L, type Hand, type Key, type LimbKey, type V } from './rig'
 
 export const GROUND = 128
 const ANK = GROUND - 4.4 // ankle height with the shoe flat on the floor
@@ -27,6 +27,8 @@ export interface Demo {
   yaw?: number
   /** faint path traced by the hands over this loop window [from, to] (e.g. one arm circle) */
   trail?: [number, number]
+  /** default hand shape (keys can override per arm) */
+  hand?: Hand
 }
 const view = (cx: number, w = 142): [number, number, number] => [+Math.max(0, Math.min(200 - w, cx - w / 2)).toFixed(1), +(138 - w * 0.77).toFixed(1), w]
 
@@ -252,6 +254,16 @@ const UP_HIT: LimbKey = { a: -10, f: 62, k: 94, b: -8 }
 const bx = (p: V, t: number, armN: LimbKey, armF: LimbKey, extra: Partial<Key> = {}): Key =>
   k(p, t, { armN: { ...armN }, armF: { ...armF }, legN: BX_N, legF: BX_F }, { pa: 180, h: 180, ...extra })
 
+const DEMO_HAND: Partial<Record<DemoKey, Hand>> = {
+  squat: 'open', lunge: 'relax', wallsit: 'relax', jumpsquat: 'relax',
+  pushup: 'flat', diamond: 'flat', plank: 'flat', burpee: 'flat', climber: 'flat', sideplank: 'flat', birddog: 'flat', bridge: 'flat',
+  situp: 'relax', crunch: 'relax', bicycle: 'relax', sidecrunch: 'relax',
+  jack: 'open', stepjack: 'open', skihop: 'open', superman: 'open', sidebend: 'open', armcircle: 'open', kickclap: 'open', steptouch: 'open',
+  dips: 'grip', pullup: 'grip',
+  highknees: 'fist', march: 'fist', buttkick: 'fist', punch: 'fist', uppercut: 'fist',
+  sideleg: 'relax', hula: 'relax', sidelunge: 'relax',
+}
+
 export const DEMOS: Record<DemoKey, Demo> = {
   squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [950, 850], still: 1 },
 
@@ -461,16 +473,19 @@ export const DEMOS: Record<DemoKey, Demo> = {
   },
   /* ================= 瘦身操 (aerobics) ================= */
 
-  // 原地踏步: one foot always planted, opposite arm swings with the lifted knee
+  // 原地踏步: one foot always planted; arms swing like a relaxed jog, opposite to the legs: elbows ~90°, loose fists
+  // travelling from beside the hip (back) to chest height (front); shoulders lift a touch on each swing
   march: {
     view: view(102, 170),
+    smooth: true,
+    lag: 0.02,
     keys: [
-      k([98, 72.2], 180, { armN: fk(6, 50), armF: fk(6, 50), legN: flat(100), legF: flat(97) }, { n: 0 }),
-      k([98, 71.2], 180, { armN: fk(-30, 75), armF: fk(40, 85), legN: fk(70, 86), legF: flat(97) }, { n: 0 }),
-      k([98, 72.2], 180, { armN: fk(6, 50), armF: fk(6, 50), legN: flat(100), legF: flat(97) }, { n: 0 }),
-      k([98, 71.2], 180, { armN: fk(40, 85), armF: fk(-30, 75), legN: flat(100), legF: fk(70, 86) }, { n: 0 }),
+      k([98, 72.2], 180, { armN: fk(4, 86), armF: fk(-8, 92), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 71.2], 180, { armN: fk(-34, 84), armF: fk(34, 96), legN: fk(70, 86), legF: flat(97) }, { n: 0, sh: 0.5 }),
+      k([98, 72.2], 180, { armN: fk(-8, 92), armF: fk(4, 86), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 71.2], 180, { armN: fk(34, 96), armF: fk(-34, 84), legN: flat(100), legF: fk(70, 86) }, { n: 0, sh: 0.5 }),
     ],
-    dur: 280,
+    dur: 300,
     still: 1,
   },
 
@@ -676,3 +691,5 @@ export const DEMOS: Record<DemoKey, Demo> = {
   },
 
 }
+
+for (const [k, h] of Object.entries(DEMO_HAND)) DEMOS[k as DemoKey].hand = h

@@ -21,6 +21,8 @@ type V3 = [number, number, number]
 export type LimbName = 'armN' | 'armF' | 'legN' | 'legF'
 export const LIMBS: LimbName[] = ['armN', 'armF', 'legN', 'legF']
 
+/** hand shape: fist, open (fingers out, thumb apart), flat (palm on a surface), relax (half-curled), grip (around a bar / edge) */
+export type Hand = 'fist' | 'open' | 'flat' | 'relax' | 'grip'
 export interface LimbKey {
   /** FK: upper segment absolute angle (front view: in-plane / abduction angle) */
   a?: number
@@ -50,6 +52,8 @@ export interface LimbKey {
   pole?: number
   /** front view foot: 0 = flat, 1 = up on the toes (heel raised) */
   toe?: number
+  /** arms: hand shape in this key (default: the demo's hand) */
+  hand?: Hand
 }
 export interface Key {
   /** hip (pelvis) position */
@@ -85,6 +89,8 @@ export interface RigOpts {
   lag?: number
   /** head trails the body by this loop fraction */
   headLag?: number
+  /** default hand shape */
+  hand?: Hand
   /** front view only: camera yaw in degrees (3/4 view). The figure turns to face screen right, so the
    *  screen-left (F) limbs come toward the camera and the N limbs go behind the body. */
   yaw?: number
@@ -111,6 +117,8 @@ const lerpN = (a: number, b: number, k: number) => a + (b - a) * k
 const lerpA = (a: number, b: number, k: number) => a + wrap(b - a) * k
 
 export interface LimbOut {
+  /** arms: hand shape */
+  hand?: Hand
   root: V
   mid: V
   end: V
@@ -224,6 +232,7 @@ function solveIK3(arm: boolean, root: V, t: V, z: number, l1: number, l2: number
 
 /** resolved per-key limb data used for interpolation */
 interface LimbRes {
+  hand?: Hand
   ik: boolean
   /** 3D (front view) IK */
   ik3: boolean
@@ -330,7 +339,7 @@ function resolveKey(key: Key, front: boolean): KeyRes {
     const eAbs = k.e !== undefined
     const ea = eAbs ? k.e! + relOff : arm ? la : la + 90
     limbs[name] = {
-      ik: !!k.t, ik3, t: k.t ?? [0, 0], z: k.z ?? 0, pole, ua, la, f, k: kz, ea, eAbs, rel: !!k.rel, fs, fu, flip: !!k.flip, lift: k.lift ?? 0, toe: k.toe ?? 0,
+      ik: !!k.t, ik3, t: k.t ?? [0, 0], z: k.z ?? 0, pole, ua, la, f, k: kz, ea, eAbs, rel: !!k.rel, fs, fu, flip: !!k.flip, lift: k.lift ?? 0, toe: k.toe ?? 0, hand: k.hand,
     }
   }
   const neck = key.h !== undefined ? key.h - key.t : key.n ?? 0
@@ -545,7 +554,9 @@ export class Rig {
       } else {
         ea = la + cc.an((r) => wrap(L_(r).ea - L_(r).la))
       }
-      return computeLimb(name, front, root, ua, bend, f, kz, ea, fc, fs, fu, toe, miss)
+      const out = computeLimb(name, front, root, ua, bend, f, kz, ea, fc, fs, fu, toe, miss)
+      if (arm) out.hand = (cc.k < 0.5 ? a.hand ?? b.hand : b.hand ?? a.hand) ?? this.opts.hand ?? 'relax'
+      return out
     })
   }
 
