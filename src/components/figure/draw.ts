@@ -570,6 +570,8 @@ interface HandShape {
   /** detail strokes: finger folds, knuckles, thumb */
   ln: V[][]
 }
+/** fists / grips drawn larger so they read at a glance */
+const HAND_SCALE: Partial<Record<Hand, number>> = { fist: 1.3, grip: 1.3 }
 const HANDS: Record<Hand, HandShape> = {
   // compact rounded block a bit wider than the wrist, a row of curled-finger bumps, thumb wrapped across the front
   fist: {
@@ -601,7 +603,7 @@ const HANDS: Record<Hand, HandShape> = {
 export function handCentre(lb: LimbOut): V {
   const o = HANDS[lb.hand ?? 'relax'].o
   const cx = o.reduce((m, q) => m + q[0], 0) / o.length
-  return add(lb.end, dir(lb.ea, lb.fc), cx - 0.2)
+  return add(lb.end, dir(lb.ea, lb.fc), cx * (HAND_SCALE[lb.hand ?? 'relax'] ?? 1) - 0.2)
 }
 
 export interface Parts {
@@ -730,7 +732,8 @@ function limbParts(fr: Frame, lb: LimbOut, arm: boolean, out: Parts, pre: string
     // forearm pointing at the camera: the hand is seen end-on → shorter
     const sx = front && lb.fs < 0.8 ? Math.max(0.6, lb.fs + 0.2) : 1
     const gh: Seg = { o: add(lb.end, hd, -0.2), u: hd, n: tn, l: 1 }
-    const P = (q: V) => at(gh, q[0] * sx, q[1])
+    const sc = HAND_SCALE[lb.hand ?? 'relax'] ?? 1
+    const P = (q: V) => at(gh, q[0] * sx * sc, q[1] * sc)
     out[pre + 'h'] = closed(shape.o.map(P))
     out[pre + '.hd'] = shape.ln.map((l) => open(l.map(P))).join('')
   } else {
