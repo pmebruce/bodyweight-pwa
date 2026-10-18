@@ -45,3 +45,5 @@ Pages 來源是 `gh-pages` 分支。`ci/github-pages-deploy.yml` 是 GitHub Acti
 ### 3D 快取路由修正
 
 獨立 3D 頁面排除於 SPA 導覽 fallback，並在 precache 對應時忽略 exercise/playing 參數，避免載入主 App 造成 iframe 遞迴。主 App 啟動時也阻止在 movement3d 子框架內執行，讓舊快取錯誤時能安全回到原動畫。
+
+3D 示範預設標示出力肌群：紅色主要、橘色輔助，區域按原骨架權重和體表位置概略區分。取消拖曳、滾輪控制，只能選正面、側面、斜側面三個固定視角。

@@ -37,6 +37,31 @@ export function createNaturalRig(model){
       for(const f of feet){f.target.set(f.s*stanceWidth/2,.074,-.048);solve(f,f.target,V(f.s*.20,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.18).multiply(f.footQ));}const armQ=depthAt((t+.985)%1);standingArms(lerp(.18,1.38,armQ));
     }model.updateMatrixWorld(true);
   }
-  const meshes=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;meshes.push(o);o.material=new T.MeshStandardMaterial({color:0xbd8d73,roughness:.83,metalness:0});const count=o.geometry.attributes.position.count,colors=new Float32Array(count*3),plain=new Float32Array(count*3);plain.fill(1);const skinI=o.geometry.attributes.skinIndex,skinW=o.geometry.attributes.skinWeight;for(let i=0;i<count;i++){let w=0;for(let k=0;k<4;k++){const bi=skinI.array[i*4+k],bw=skinW.array[i*4+k];if(/thigh/.test(o.skeleton.bones[bi]?.name))w+=bw;}const p=o.getVertexPosition(i,V()).applyMatrix4(o.matrixWorld);const glute=p.y>.82&&p.y<1.03&&p.z<-.065;const hot=glute||w>.48,c=new T.Color(hot?0xf29b6c:0xffffff);colors.set(c.toArray(),i*3);}o.userData.highlightColors=colors;const upperColors=new Float32Array(count*3);for(let i=0;i<count;i++){let w=0;for(let k=0;k<4;k++){const bi=skinI.array[i*4+k];if(/upperarm|lowerarm/.test(o.skeleton.bones[bi]?.name))w+=skinW.array[i*4+k];}const p=o.getVertexPosition(i,V()).applyMatrix4(o.matrixWorld);const chest=p.y>1.22&&p.y<1.50&&Math.abs(p.x)<.23&&p.z>-.01;upperColors.set(new T.Color(chest||w>.45?0xf29b6c:0xffffff).toArray(),i*3);}o.userData.upperColors=upperColors;o.userData.plainColors=plain;o.geometry.setAttribute('color',new T.BufferAttribute(plain.slice(),3));o.material.vertexColors=true;}});
-  return {pose,feet,hands,meshes,setStance(width){stanceWidth=T.MathUtils.clamp(width,.42,.58);},setExercise(name){exercise=name;flipped=false;this.setHighlight(highlighted);},flipSide(){flipped=!flipped;return flipped;},setHighlight(on){highlighted=on;meshes.forEach(o=>{o.geometry.attributes.color.array.set(on?(exercise==='pushup'?o.userData.upperColors:o.userData.highlightColors):o.userData.plainColors);o.geometry.attributes.color.needsUpdate=true;});},setWireframe(on){meshes.forEach(o=>o.material.wireframe=on);}};
+  const meshes=[];
+  model.traverse(o=>{if(!o.isSkinnedMesh)return;
+    o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;meshes.push(o);
+    o.material=new T.MeshStandardMaterial({color:0xffffff,roughness:.83,metalness:0,vertexColors:true});
+    const count=o.geometry.attributes.position.count,skinI=o.geometry.attributes.skinIndex,skinW=o.geometry.attributes.skinWeight;
+    const plain=new Float32Array(count*3),profiles=Object.fromEntries(['squat','lunge','pushup','jack'].map(k=>[k,new Float32Array(count*3)]));
+    const skin=new T.Color(0xbd8d73),primary=new T.Color(0xff4938),secondary=new T.Color(0xf6ad45);
+    const axes=o.skeleton.bones.map(bone=>{const a=bone.getWorldPosition(V()),child=bone.children.find(c=>c.isBone),b=child?child.getWorldPosition(V()):a.clone().add(V(0,-.1,0)),v=b.sub(a);return {name:bone.name,a,v,lenSq:Math.max(v.lengthSq(),1e-8)};});
+    const segment=(p,re)=>{let weight=0,z=0,x=0;for(let k=0;k<4;k++){const bw=skinW.array[p.i*4+k],bone=axes[skinI.array[p.i*4+k]];if(!bw||!re.test(bone?.name||''))continue;weight+=bw;const {a,v,lenSq}=bone,t=T.MathUtils.clamp(((p.point.x-a.x)*v.x+(p.point.y-a.y)*v.y+(p.point.z-a.z)*v.z)/lenSq,0,1);z+=(a.z+v.z*t)*bw;x+=(a.x+v.x*t)*bw;}return {weight,z:z/Math.max(weight,1e-8),x:x/Math.max(weight,1e-8)};};
+    for(let i=0;i<count;i++){
+      const p=o.getVertexPosition(i,V()).applyMatrix4(o.matrixWorld),sample={i,point:p},thigh=segment(sample,/^thigh_/),calf=segment(sample,/^calf_/),arm=segment(sample,/^upperarm_/);
+      const quads=thigh.weight>.48&&p.y>.53&&p.y<.96&&p.z>thigh.z+.012;
+      const hamstrings=thigh.weight>.48&&p.y>.56&&p.y<.92&&p.z<thigh.z-.012;
+      const glutes=p.y>.83&&p.y<1.05&&Math.abs(p.x)<.22&&p.z<-.045;
+      const calves=calf.weight>.5&&p.y>.14&&p.y<.48&&p.z<calf.z+.015;
+      const adductors=thigh.weight>.48&&p.y>.59&&p.y<.9&&Math.abs(p.x)<Math.abs(thigh.x)-.025;
+      const chest=p.y>1.26&&p.y<1.46&&Math.abs(p.x)<.19&&p.z>.035;
+      const delts=['Left','Right'].some(side=>p.distanceTo(rest.get(bones[side+'Arm']).wp)<.115);
+      const frontDelts=delts&&p.z>.015;
+      const triceps=arm.weight>.5&&!delts&&p.z<arm.z-.008;
+      const abs=p.y>1.04&&p.y<1.26&&Math.abs(p.x)<.135&&p.z>.035;
+      const tests={squat:[quads||glutes,hamstrings],lunge:[quads||glutes,hamstrings||calves],pushup:[chest||triceps||frontDelts,abs],jack:[delts||calves,quads||adductors]};
+      skin.toArray(plain,i*3);for(const [name,[main,assist]] of Object.entries(tests))(main?primary:assist?secondary:skin).toArray(profiles[name],i*3);
+    }
+    o.userData.muscleProfiles=profiles;o.userData.plainColors=plain;o.geometry.setAttribute('color',new T.BufferAttribute(plain.slice(),3));
+  });
+  return {pose,feet,hands,meshes,setStance(width){stanceWidth=T.MathUtils.clamp(width,.42,.58);},setExercise(name){exercise=name;flipped=false;this.setHighlight(highlighted);},flipSide(){flipped=!flipped;return flipped;},setHighlight(on){highlighted=on;meshes.forEach(o=>{o.geometry.attributes.color.array.set(on?o.userData.muscleProfiles[exercise]:o.userData.plainColors);o.geometry.attributes.color.needsUpdate=true;});},setWireframe(on){meshes.forEach(o=>o.material.wireframe=on);}};
 }
