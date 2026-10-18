@@ -59,8 +59,24 @@ export function createNaturalRig(model){
   }
   function pose(t){const q=depthAt(t);
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
-    if(!['squat','pushup','lunge','jack'].includes(exercise)){retarget(t);return;}
-    if(exercise==='pushup'){
+    if(!['squat','pushup','lunge','jack','armcircle'].includes(exercise)){retarget(t);return;}
+    if(exercise==='armcircle'){
+      // A small cone around the outstretched arm, with independent shoulder motion.
+      // The neck, chest and pelvis do not inherit the old projected shrug/bob.
+      const phase=2*Math.PI*t,c=Math.cos(phase),sn=Math.sin(phase),up=V(0,1,0);
+      const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=.18-Math.abs(hp.x),dz=-.048-(hp.z-rootRest.z);
+      const y=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);
+      rootAt(V(0,y,0),up);torso(up);
+      for(const f of feet){
+        f.target.set(f.s*.18,.074,-.048);solve(f,f.target,V(f.s*.12,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);
+        // Only a small scapular contribution; never rotate the spine or neck.
+        const shoulder=bones[f.side+'Shoulder'];rotateWorld(shoulder,new T.Quaternion().setFromAxisAngle(V(0,0,1),f.s*.025*c).multiply(rest.get(shoulder).wq));
+        aim(f.side+'Arm',f.side+'ForeArm',V(f.s*Math.sqrt(1-.30**2),.30*c,.30*sn));
+        const fore=V(f.s*Math.sqrt(1-.38**2),.38*c-.045,.38*sn);
+        aim(f.side+'ForeArm',f.side+'Hand',fore);aim(f.side+'Hand',f.side+'HandMiddle1',fore);
+      }
+      model.updateMatrixWorld(true);raiseAboveFloor(V(0,y,0),up);
+    }else if(exercise==='pushup'){
       const up=V(0,lerp(.18,-.03,q),1).normalize();rootAt(V(0,lerp(.38,.24,q),0),up);const A=world(feet[0].upper),length=Math.min(...feet.map(f=>f.L1+f.L2))-.001,dy=A.y-.232,dx=A.x+.10;const rootZ=-1.21+Math.sqrt(length*length-dy*dy-dx*dx)-A.z;rootAt(V(0,lerp(.38,.24,q),rootZ),up);torso(up,up);
       for(const f of feet){f.target.set(f.s*.10,.232,-1.21);solve(f,f.target,V(0,-1,0),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),.92).multiply(f.footQ));}
       for(const h of hands){h.target.set(h.s*.275,.078,.245);solve(h,h.target,V(h.s,0,-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');aim(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1));}
