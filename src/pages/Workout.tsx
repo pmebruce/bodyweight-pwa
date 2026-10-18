@@ -6,6 +6,7 @@ import { resolvePlan, itemTarget } from '../lib/plan'
 import { EX_MAP } from '../data/exercises'
 import type { Exercise, Plan, WorkoutLog } from '../types'
 import ExerciseFigure from '../components/ExerciseFigure'
+import ExerciseDemo from '../components/ExerciseDemo'
 import Ring from '../components/Ring'
 import CountUp from '../components/CountUp'
 import Icon from '../components/Icon'
@@ -416,7 +417,7 @@ function ReadyView({ plan, onStart }: { plan: Plan; onStart: () => void }) {
   return (
     <motion.div className="wk-step wk-ready" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
       <div className="wk-fig big">
-        <ExerciseFigure demo={first.demo} />
+        <ExerciseDemo key={first.demo} demo={first.demo} compact />
       </div>
       <h1 className="wk-name">準備好了嗎？</h1>
       <p className="wk-sub">
@@ -479,7 +480,7 @@ function WorkView({ step, leftMs, frac, onComplete, paused }: { step: WorkStep; 
       </div>
       <h1 className="wk-name">{step.ex.name}</h1>
       <div className="wk-fig">
-        <ExerciseFigure demo={step.ex.demo} playing={!paused} />
+        <ExerciseDemo key={step.ex.demo} demo={step.ex.demo} playing={!paused} compact />
       </div>
       {step.seconds ? (
         <Ring progress={1 - frac} size={size} id="ring-work">

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { DIFF_LABEL, EX_MAP } from '../data/exercises'
-import ExerciseFigure from '../components/ExerciseFigure'
+import ExerciseDemo from '../components/ExerciseDemo'
 import { TARGETS, targetLabels } from '../components/figure/anatomy'
 import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
@@ -8,7 +8,7 @@ import { navigate } from '../lib/router'
 import { useState } from 'react'
 
 /** demo playback speeds, cycled by the speed chip */
-const SPEEDS = [1, 0.75, 0.5] as const
+const SPEEDS = [1, 2, 0.75, 0.5] as const
 
 export default function ExerciseDetail({ id }: { id: string }) {
   const ex = EX_MAP[id]
@@ -19,7 +19,7 @@ export default function ExerciseDetail({ id }: { id: string }) {
     <div className="page with-cta">
       <PageHeader title={ex.name} subtitle={ex.en} back="/library" />
       <motion.div className="demo-stage" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}>
-        <ExerciseFigure demo={ex.demo} speed={speed} />
+        <ExerciseDemo key={ex.demo} demo={ex.demo} speed={speed} />
         <button className="speed-btn" onClick={() => setSi((i) => (i + 1) % SPEEDS.length)} aria-label={`播放速度 ${speed} 倍，點一下切換`}>
           {speed}× 速度
         </button>
