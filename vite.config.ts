@@ -34,6 +34,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,bin,txt}'],
         navigateFallback: `${base}index.html`,
+        // The embedded viewer is a separate document, never the React app shell.
+        navigateFallbackDenylist: [/\/movement3d\//],
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^(exercise|playing)$/],
         cleanupOutdatedCaches: true,
       },
     }),

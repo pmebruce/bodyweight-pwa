@@ -6,6 +6,10 @@ import { StoreProvider } from './lib/store'
 import { unlockMedia } from './lib/cues'
 import './styles.css'
 
+// A stale app-shell service worker must never bootstrap another App inside the viewer.
+if (window.self !== window.top && location.pathname.includes('/movement3d/')) {
+  window.parent.postMessage({ type: 'movement3d-error' }, location.origin)
+} else {
 registerSW({ immediate: true })
 
 // iOS needs a user gesture before audio / speech can play
@@ -30,3 +34,5 @@ createRoot(document.getElementById('root')!).render(
     </StoreProvider>
   </StrictMode>,
 )
+
+}

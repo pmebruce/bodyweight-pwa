@@ -41,3 +41,7 @@ Pages 來源是 `gh-pages` 分支。`ci/github-pages-deploy.yml` 是 GitHub Acti
 深蹲、伏地挺身、弓箭步、開合跳：動作詳細頁與訓練主畫面預設使用稍豐腴完整人體，支援旋轉、正側視角、主要區域標示，以及原動畫切換。詳細頁速度包含 2×；訓練暫停同步停止人物，示範速度不影響計時。其餘動作與動作庫縮圖維持原 SVG。
 模型隨 App 部署並由 PWA 快取，不依賴私人 Sites；GLB 以 gzip 無損壓縮分塊存放，瀏覽器合併解壓再載入。WebGL 或載入失敗時自動切回原動畫。
 模型來源：https://www.innerscene.com/tools/library/3d-parts/human-base-mesh-with-editable-53-bone-rig-8e7c8ab1 (MakeHuman/MPFB, CC0)。軀幹與四肢略增厚，保留骨架比例；程序式動畫並非真人捕捉。Three.js MIT 授權見 public/movement3d/assets/THREE-LICENSE.txt。
+
+### 3D 快取路由修正
+
+獨立 3D 頁面排除於 SPA 導覽 fallback，並在 precache 對應時忽略 exercise/playing 參數，避免載入主 App 造成 iframe 遞迴。主 App 啟動時也阻止在 movement3d 子框架內執行，讓舊快取錯誤時能安全回到原動畫。
