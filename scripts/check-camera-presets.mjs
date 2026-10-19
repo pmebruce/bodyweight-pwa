@@ -1,0 +1,13 @@
+import {cameraPresets,cameraDistance} from '../public/movement3d/camera-presets.js';import {MOTIONS} from '../public/movement3d/motion-library.js';import fs from 'node:fs';import zlib from 'node:zlib';import assert from 'node:assert/strict';import * as T from '../public/movement3d/assets/three.module.js';import {GLTFLoader} from '../public/movement3d/assets/GLTFLoader.js';import {createNaturalRig} from '../public/movement3d/natural-rig.js';import {createBodyFullness} from '../public/movement3d/body-fullness.js';globalThis.ProgressEvent=class{};
+const root=new URL('../public/movement3d/',import.meta.url).pathname,raw=zlib.gunzipSync(Buffer.concat(Array.from({length:10},(_,i)=>fs.readFileSync(root+'assets/human-'+String(i).padStart(2,'0')+'.bin')))),g=await new GLTFLoader().parseAsync(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength),'');const body=new T.Group();body.scale.setScalar(1.8/1.680323797);body.add(g.scene);createBodyFullness(body).setFull(true);const rig=createNaturalRig(body);let checked=0,horizontal=0;const profiles=[];
+for(const name of Object.keys(MOTIONS)){
+ rig.setExercise(name);const bounds=new T.Box3();const axes=[];
+ for(let i=0;i<20;i++){rig.pose(i/20);for(const bone of Object.values(rig.bones))bounds.expandByPoint(bone.getWorldPosition(new T.Vector3()));const hip=rig.bones.Hips.getWorldPosition(new T.Vector3()),axis=rig.bones.Neck.getWorldPosition(new T.Vector3()).sub(hip).normalize();if(hip.y<.6&&Math.abs(axis.y)<.65){axis.y=0;axes.push(axis.normalize());}}
+ bounds.expandByScalar(.12);const presets=cameraPresets(name);if(presets.front.label==='側俯視')profiles.push(name);
+ for(const preset of Object.values(presets)){
+  const {yaw,pitch}=preset;for(const axis of axes){horizontal++;const direction=new T.Vector3(Math.sin(yaw),0,Math.cos(yaw));assert(Math.abs(direction.dot(axis))<.5,name+' must not look down the body from feet/head');assert(pitch>=.18,name+' must look from above');}
+  for(const aspect of [.46,.75,1.5]){const camera=new T.PerspectiveCamera(35,aspect,.1,40),target=bounds.getCenter(new T.Vector3()),distance=cameraDistance(bounds.getSize(new T.Vector3()),yaw,pitch,aspect,.75);camera.position.copy(target).add(new T.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(distance));camera.lookAt(target);camera.updateMatrixWorld();for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z]){const p=new T.Vector3(x,y,z).project(camera);assert(Math.abs(p.x)<=.861&&Math.abs(p.y)<=.751,name+' framing must fit whole cycle');}}
+  checked++;
+ }
+}
+console.log({exercises:Object.keys(MOTIONS).length,fixedViews:checked,horizontalViewChecks:horizontal,sideProfiles:profiles});
