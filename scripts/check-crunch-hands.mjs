@@ -1,0 +1,11 @@
+import fs from 'node:fs';import zlib from 'node:zlib';import assert from 'node:assert/strict';import * as T from '../public/movement3d/assets/three.module.js';import {GLTFLoader} from '../public/movement3d/assets/GLTFLoader.js';import {createNaturalRig} from '../public/movement3d/natural-rig.js';import {createBodyFullness} from '../public/movement3d/body-fullness.js';globalThis.ProgressEvent=class{};
+const root=new URL('../public/movement3d/',import.meta.url).pathname,raw=zlib.gunzipSync(Buffer.concat(Array.from({length:10},(_,i)=>fs.readFileSync(root+'assets/human-'+String(i).padStart(2,'0')+'.bin')))),g=await new GLTFLoader().parseAsync(raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength),'');const body=new T.Group();body.scale.setScalar(1.8/1.680323797);body.add(g.scene);createBodyFullness(body).setFull(true);const rig=createNaturalRig(body);rig.setExercise('crunch');let reference,previous,maxStep=0,maxPalmDrift=0,maxWristDrift=0;
+for(let i=0;i<=120;i++){
+ rig.pose(i/120);const chest=rig.bones.Spine2;const inverse=chest.getWorldQuaternion(new T.Quaternion()).invert();const cp=chest.getWorldPosition(new T.Vector3());
+ const hands=['Left','Right'].map(side=>({p:rig.bones[side+'Hand'].getWorldPosition(new T.Vector3()).sub(cp).applyQuaternion(inverse),q:inverse.clone().multiply(rig.bones[side+'Hand'].getWorldQuaternion(new T.Quaternion()))}));
+ if(!reference)reference=hands;
+ for(let j=0;j<2;j++){maxPalmDrift=Math.max(maxPalmDrift,hands[j].q.angleTo(reference[j].q));maxWristDrift=Math.max(maxWristDrift,hands[j].p.distanceTo(reference[j].p));}
+ const rotations=['LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand'].map(n=>rig.bones[n].getWorldQuaternion(new T.Quaternion()));if(previous)for(let j=0;j<rotations.length;j++)maxStep=Math.max(maxStep,rotations[j].angleTo(previous[j]));previous=rotations;
+ for(const m of rig.meshes){m.skeleton.update();assert(m.skeleton.boneMatrices.every(Number.isFinite));}
+}
+assert(maxPalmDrift<1e-6,'Palms must stay aligned with chest');assert(maxWristDrift<.001,'Hands must stay at chest');assert(maxStep<.1,'No wrist or shoulder jumps');console.log({maxPalmDrift,maxWristDrift,maxStepDegrees:maxStep*180/Math.PI});

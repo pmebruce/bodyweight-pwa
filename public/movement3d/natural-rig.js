@@ -19,6 +19,22 @@ export function createNaturalRig(model){
   function solve(chain,C,pole,a,b,c){const A=world(chain.upper),d=C.clone().sub(A),D=T.MathUtils.clamp(d.length(),Math.abs(chain.L1-chain.L2)+.0001,chain.L1+chain.L2-.0001),u=d.clone().normalize();const along=(chain.L1**2-chain.L2**2+D**2)/(2*D);const h=Math.sqrt(Math.max(0,chain.L1**2-along**2));const n=pole.clone().addScaledVector(u,-pole.dot(u)).normalize();const B=A.clone().addScaledVector(u,along).addScaledVector(n,h);aim(a,b,B.clone().sub(A));aim(b,c,A.clone().addScaledVector(u,D).sub(world(chain.lower)));}
   function rootAt(p,up){const hips=bones.Hips;hips.position.copy(hips.parent.worldToLocal(p.clone()));rotateWorld(hips,new T.Quaternion().setFromUnitVectors(V(0,1,0),up.clone().normalize()).multiply(rest.get(hips).wq));model.updateMatrixWorld(true);}
   function torso(up,headUp=up){aim('Spine','Spine1',up);aim('Spine1','Spine2',up);aim('Spine2','Neck',up);aim('Neck','Head',headUp);aim('Head','HeadTop_End',headUp);}
+  function crossedChestArms(up){
+    const forward=V(1,0,0).cross(up).normalize(),chest=world(bones.Spine2);
+    for(const h of hands){
+      const target=chest.clone().addScaledVector(up,-.055+(h.s>0?.015:0)).addScaledVector(forward,h.s>0?.175:.145).add(V(-h.s*.055,0,0));
+      solve(h,target,V(h.s,0,0).addScaledVector(up,-.65).addScaledVector(forward,.12),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      // Constrain both finger direction AND palm normal in the chest frame.
+      // A single-vector aim leaves wrist roll undetermined as the torso curls.
+      const finger=V(-h.s,0,0).addScaledVector(up,.25).normalize();
+      const palm=forward.clone().negate();palm.addScaledVector(finger,-palm.dot(finger)).normalize();
+      const restFinger=axis(h.side+'Hand',h.side+'HandMiddle1');
+      const restPalm=V(0,0,1).addScaledVector(restFinger,-restFinger.z).normalize();
+      const basis=(f,n)=>new T.Matrix4().makeBasis(f,n,f.clone().cross(n).normalize());
+      const delta=new T.Quaternion().setFromRotationMatrix(basis(finger,palm).multiply(basis(restFinger,restPalm).invert()));
+      rotateWorld(h.end,delta.multiply(rest.get(h.end).wq));
+    }
+  }
   function standingArms(raise){for(const f of feet){aim(f.side+'Arm',f.side+'ForeArm',V(f.s*.12,-Math.cos(raise),Math.sin(raise)));aim(f.side+'ForeArm',f.side+'Hand',V(-f.s*.08,-Math.cos(raise+.32),Math.sin(raise+.32)));}}
   const floorSamples=[],sampleDirections=[];for(const x of [-1,0,1])for(const y of [-1,0,1])for(const z of [-1,0,1])if(x||y||z)sampleDirections.push([x,y,z]);
   model.traverse(m=>{if(!m.isSkinnedMesh)return;const buckets=new Map(),pos=m.geometry.attributes.position,weights=m.geometry.attributes.skinWeight,indices=m.geometry.attributes.skinIndex;for(let i=0;i<pos.count;i++){let joint=indices.array[i*4],highest=weights.array[i*4];for(let k=1;k<4;k++)if(weights.array[i*4+k]>highest){highest=weights.array[i*4+k];joint=indices.array[i*4+k];}const p=V().fromBufferAttribute(pos,i);let bucket=buckets.get(joint);if(!bucket){bucket=Array(26).fill(null);buckets.set(joint,bucket);}for(let k=0;k<26;k++){const d=sampleDirections[k],score=p.x*d[0]+p.y*d[1]+p.z*d[2];if(!bucket[k]||score>bucket[k].score)bucket[k]={i,score};}}floorSamples.push({mesh:m,indices:[...new Set([...buckets.values()].flat().filter(Boolean).map(x=>x.i))]});});
@@ -44,6 +60,7 @@ export function createNaturalRig(model){
         const finger=direction(f,[Math.sin(l.ea*rad)*l.fc,Math.cos(l.ea*rad)],f.front?.15:0);aim(side+'Hand',side+'HandMiddle1',finger);if(l.hand==='fist'||l.hand==='grip'){const closed=l.hand==='fist'?.85:.65;for(const bone of rest.keys()){if(!/^(index|middle|ring|pinky)_/.test(bone.name)||!bone.name.endsWith(side==='Left'?'_l':'_r'))continue;const level=Number(bone.name.split('_')[1]);bone.quaternion.multiply(new T.Quaternion().setFromAxisAngle(V(1,0,0),level===1?closed:level===2?1.0:.65));}model.updateMatrixWorld(true);}
       }
     }
+    if(exercise==='crunch')crossedChestArms(up);
     // Keep the full skin above the floor, then restore planted support targets.
     raiseAboveFloor(root,up);
     for(const foot of feet){const l=f['leg'+(foot.side==='Left'?'N':'F')],height=(128-l.end[1])*pointScale;const planted=height<.13||(height<.25&&l.ea<65&&l.ea>0);if(!planted)continue;
