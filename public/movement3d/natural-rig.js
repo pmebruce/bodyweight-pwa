@@ -61,7 +61,7 @@ export function createNaturalRig(model){
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
     if(!['squat','pushup','lunge','jack','armcircle'].includes(exercise)){retarget(t);return;}
     if(exercise==='armcircle'){
-      // A small cone around the outstretched arm, with independent shoulder motion.
+      // A moderate cone around the outstretched arm, with independent shoulder motion.
       // The neck, chest and pelvis do not inherit the old projected shrug/bob.
       const phase=2*Math.PI*t,c=Math.cos(phase),sn=Math.sin(phase),up=V(0,1,0);
       const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=.18-Math.abs(hp.x),dz=-.048-(hp.z-rootRest.z);
@@ -71,8 +71,8 @@ export function createNaturalRig(model){
         f.target.set(f.s*.18,.074,-.048);solve(f,f.target,V(f.s*.12,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);
         // Only a small scapular contribution; never rotate the spine or neck.
         const shoulder=bones[f.side+'Shoulder'];rotateWorld(shoulder,new T.Quaternion().setFromAxisAngle(V(0,0,1),f.s*.025*c).multiply(rest.get(shoulder).wq));
-        aim(f.side+'Arm',f.side+'ForeArm',V(f.s*Math.sqrt(1-.30**2),.30*c,.30*sn));
-        const fore=V(f.s*Math.sqrt(1-.38**2),.38*c-.045,.38*sn);
+        aim(f.side+'Arm',f.side+'ForeArm',V(f.s*Math.sqrt(1-.42**2),.42*c,.42*sn));
+        const fore=V(f.s*Math.sqrt(1-.50**2),.50*c-.045,.50*sn);
         aim(f.side+'ForeArm',f.side+'Hand',fore);aim(f.side+'Hand',f.side+'HandMiddle1',fore);
       }
       model.updateMatrixWorld(true);raiseAboveFloor(V(0,y,0),up);
