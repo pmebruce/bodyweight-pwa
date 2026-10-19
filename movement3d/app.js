@@ -5,6 +5,7 @@ import {createBodyFullness} from './body-fullness.js';
 import {softenFace} from './soften-face.js';
 import {MOTIONS} from './motion-library.js';
 import {createProps} from './scene-props.js';
+import {cameraPresets,cameraDistance} from './camera-presets.js';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),exercise=params.get('exercise'),meta=MOTIONS[exercise];
 let rig,renderer,playing=params.get('playing')==='true',speed=1,time=.05,raf=0,disposed=false,highlighted=true,needsRender=true,lastPose=NaN;
 const post=type=>parent.postMessage({type},location.origin);
@@ -15,9 +16,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.shadowMap.enable
 const scene=new T.Scene(),camera=new T.PerspectiveCamera(35,1,.1,40);let angle=meta.front?'front':exercise==='pushup'?'side':'three';const bounds=new T.Box3(new T.Vector3(-.6,0,-.8),new T.Vector3(.6,1.9,.8));
 scene.add(new T.HemisphereLight(0xfff5ea,0x7c8790,1.7));const key=new T.DirectionalLight(0xfff2df,2.2);key.position.set(-3,6,4);key.castShadow=true;key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-2.5,right:2.5,top:3,bottom:-3});key.shadow.normalBias=.006;scene.add(key);const rim=new T.DirectionalLight(0xe3edff,1.1);rim.position.set(3,3,-3);scene.add(rim);
 const floor=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({color:0xe9eee5,roughness:.85}));floor.rotation.x=-Math.PI/2;floor.position.y=-.006;floor.receiveShadow=true;scene.add(floor);const prop=createProps(exercise);scene.add(prop);
-function view(){needsRender=true;const overhead=exercise==='crunch'&&angle==='front',yaw=overhead?Math.PI/2:{front:0,side:Math.PI/2,three:.68}[angle],pitch=overhead?.40:.10,target=bounds.getCenter(new T.Vector3()),size=bounds.getSize(new T.Vector3()),w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),usable=T.MathUtils.clamp((h-90)/h,.54,.86),visibleWidth=Math.abs(Math.cos(yaw))*size.x+Math.abs(Math.sin(yaw))*size.z,depth=Math.abs(Math.sin(yaw))*size.x+Math.abs(Math.cos(yaw))*size.z;camera.aspect=w/h;camera.updateProjectionMatrix();const distance=Math.max(size.y/(2*Math.tan(35*Math.PI/360)*usable),visibleWidth/(2*Math.tan(35*Math.PI/360)*camera.aspect*.86))+depth*.45;camera.position.copy(target).add(new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*distance,Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance));camera.lookAt(target);document.querySelectorAll('[data-angle]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.angle===angle)));}
-// Supine crunches replace the foot-end front view with a fixed elevated side view.
-if(exercise==='crunch')document.querySelector('[data-angle=front]').textContent='微俯瞰';
+const presets=cameraPresets(exercise);
+function view(){
+  needsRender=true;const {yaw,pitch}=presets[angle],target=bounds.getCenter(new T.Vector3()),size=bounds.getSize(new T.Vector3());
+  const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),usable=T.MathUtils.clamp((h-90)/h,.54,.86);
+  camera.aspect=w/h;camera.updateProjectionMatrix();const distance=cameraDistance(size,yaw,pitch,camera.aspect,usable);
+  camera.position.copy(target).add(new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*distance,Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance));camera.lookAt(target);
+  document.querySelectorAll('[data-angle]').forEach(b=>{b.textContent=presets[b.dataset.angle].label;b.setAttribute('aria-pressed',String(b.dataset.angle===angle));});
+}
 const resize=new ResizeObserver(()=>{renderer.setSize(innerWidth,innerHeight,false);view();});resize.observe(document.body);
 document.querySelectorAll('[data-angle]').forEach(b=>b.onclick=()=>{angle=b.dataset.angle;view();});$('muscle').onclick=()=>{highlighted=!highlighted;$('muscle').setAttribute('aria-pressed',String(highlighted));rig?.setHighlight(highlighted);needsRender=true;};
 addEventListener('message',e=>{if(e.source!==parent||e.origin!==location.origin||e.data?.type!=='movement3d-control')return;playing=!!e.data.playing;if([.5,.75,1,2].includes(e.data.speed))speed=e.data.speed;});
