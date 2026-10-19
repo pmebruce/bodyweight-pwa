@@ -22,11 +22,11 @@ export function createNaturalRig(model){
   function crossedChestArms(up){
     const forward=V(1,0,0).cross(up).normalize(),chest=world(bones.Spine2);
     for(const h of hands){
-      const target=chest.clone().addScaledVector(up,-.055+(h.s>0?.015:0)).addScaledVector(forward,h.s>0?.175:.145).add(V(-h.s*.055,0,0));
+      const target=chest.clone().addScaledVector(up,.170+(h.s>0?.015:0)).addScaledVector(forward,h.s>0?.210:.145).add(V(-h.s*.110,0,0));
       solve(h,target,V(h.s,0,0).addScaledVector(up,-.65).addScaledVector(forward,.12),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
       // Constrain both finger direction AND palm normal in the chest frame.
       // A single-vector aim leaves wrist roll undetermined as the torso curls.
-      const finger=V(-h.s,0,0).addScaledVector(up,.25).normalize();
+      const finger=V(-h.s*.55,0,0).addScaledVector(up,.83).normalize();
       const palm=forward.clone().negate();palm.addScaledVector(finger,-palm.dot(finger)).normalize();
       const restFinger=axis(h.side+'Hand',h.side+'HandMiddle1');
       const restPalm=V(0,0,1).addScaledVector(restFinger,-restFinger.z).normalize();
