@@ -13,6 +13,10 @@ export function createNaturalRig(model){
   const world=b=>b.getWorldPosition(V()),axis=(a,b)=>rest.get(bones[b]).wp.clone().sub(rest.get(bones[a]).wp).normalize();
   function rotateWorld(b,q){const parentQ=b.parent.getWorldQuaternion(new T.Quaternion());b.quaternion.copy(parentQ.invert().multiply(q));b.updateMatrixWorld(true);}
   function aim(a,b,dir){const bone=bones[a],delta=new T.Quaternion().setFromUnitVectors(axis(a,b),dir.clone().normalize());rotateWorld(bone,delta.multiply(rest.get(bone).wq));}
+  function aimInFrame(a,b,dir,frame){
+    const from=axis(a,b).applyQuaternion(frame),swing=new T.Quaternion().setFromUnitVectors(from,dir.clone().normalize());
+    rotateWorld(bones[a],swing.multiply(frame.clone()).multiply(rest.get(bones[a]).wq));
+  }
   const feet=['Right','Left'].map((side,i)=>{const upper=bones[side+'UpLeg'],lower=bones[side+'Leg'],foot=bones[side+'Foot'];return {side,s:i===0?-1:1,upper,lower,foot,L1:world(upper).distanceTo(world(lower)),L2:world(lower).distanceTo(world(foot)),target:V(i===0?-.18:.18,world(foot).y,-.048),footQ:rest.get(foot).wq.clone()};});
   const hands=['Right','Left'].map((side,i)=>({side,s:i===0?-1:1,upper:bones[side+'Arm'],lower:bones[side+'ForeArm'],end:bones[side+'Hand'],L1:world(bones[side+'Arm']).distanceTo(world(bones[side+'ForeArm'])),L2:world(bones[side+'ForeArm']).distanceTo(world(bones[side+'Hand'])),target:V()}));
   let exercise='squat',flipped=false,highlighted=false,stanceWidth=.50;const motionCache=new Map();
@@ -47,11 +51,16 @@ export function createNaturalRig(model){
     const root=f.front?V((f.p[0]-100)*pointScale,(128-f.p[1])*pointScale,0):V(0,(128-f.p[1])*pointScale,(f.p[0]-100)*pointScale);
     if(exercise==='pullup')root.y=1.08+(root.y-.9486)*.60;
     rootAt(root,up);torso(up,headUp);
+    const pelvisFrame=bones.Hips.getWorldQuaternion(new T.Quaternion()).multiply(rest.get(bones.Hips).wq.clone().invert());
     for(const [name,side] of [['N','Left'],['F','Right']])for(const [kind,a,b,c,source1,source2] of [['arm','Arm','ForeArm','Hand',20,16],['leg','UpLeg','Leg','Foot',26.5,26]]){
       const l=f[kind+name],u=[l.mid[0]-l.root[0],l.mid[1]-l.root[1]],v=[l.end[0]-l.mid[0],l.end[1]-l.mid[1]];
       let zm=l.zm,ze=l.ze-l.zm;
       if(f.front){if(Math.abs(zm)<1e-6&&l.fu<.99)zm=Math.sqrt(Math.max(0,source1**2-u[0]**2-u[1]**2));if(Math.abs(ze)<1e-6&&l.fs<.99)ze=Math.sqrt(Math.max(0,source2**2-v[0]**2-v[1]**2));}
-      aim(side+a,side+b,direction(f,u,zm));aim(side+b,side+c,direction(f,v,ze));
+      if(exercise==='bicycle'&&kind==='leg'){
+        // Keep the leg's roll relative to the lying pelvis. A world-space
+        // shortest-arc aim can turn the thigh inside out when knees lift.
+        aimInFrame(side+a,side+b,direction(f,u,zm),pelvisFrame);aimInFrame(side+b,side+c,direction(f,v,ze),pelvisFrame);
+      }else{aim(side+a,side+b,direction(f,u,zm));aim(side+b,side+c,direction(f,v,ze));}
       if(kind==='leg'){
         const chain=feet.find(x=>x.side===side);chain.target.copy(world(chain.foot));
         const angle=f.front?l.toe*.85:T.MathUtils.clamp((90-l.ea)*rad,-1.2,1.3);
