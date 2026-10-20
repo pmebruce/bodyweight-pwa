@@ -67,6 +67,40 @@ export function createNaturalRig(model){
       orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',finger.clone().addScaledVector(forward,-.15),palm);
     }
   }
+  function closeFist(h,palm){
+    const suffix=h.side==='Left'?'_l':'_r';
+    for(const [b,r] of rest)if(/^(index|middle|ring|pinky)_/.test(b.name)&&b.name.endsWith(suffix))b.quaternion.copy(r.q);
+    model.updateMatrixWorld(true);
+    for(const name of ['index','middle','ring','pinky']){
+      const joints=[1,2,3].map(i=>[...rest.keys()].find(b=>b.name===name+'_0'+i+suffix));
+      const direction=world(joints[1]).sub(world(joints[0])).normalize(),hinge=direction.cross(palm).normalize();
+      for(let i=0;i<3;i++){const b=joints[i];rotateWorld(b,new T.Quaternion().setFromAxisAngle(hinge,[1.05,1.45,.85][i]).multiply(b.getWorldQuaternion(new T.Quaternion())));}
+    }
+    const index=[...rest.keys()].find(b=>b.name==='index_02'+suffix),thumb=bones[h.side+'HandThumb1'];
+    const target=world(index).addScaledVector(palm,.012);
+    orientSegment(h.side+'HandThumb1',h.side+'HandThumb2',target.sub(world(thumb)),palm);
+    const tip=[...rest.keys()].find(b=>b.name==='index_03'+suffix);
+    orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',world(tip).addScaledVector(palm,.018).sub(world(bones[h.side+'HandThumb2'])),palm);
+  }
+  function straightPunch(t,up,headUp){
+    const phase=(t*2)%1,smooth=x=>x*x*(3-2*x),extension=phase<.10?0:phase<.38?smooth((phase-.10)/.28):phase<.45?1:phase<.78?1-smooth((phase-.45)/.33):0;
+    const active=t<.5?'Left':'Right',sign=active==='Left'?1:-1;
+    const chest=bones.Spine2,twist=new T.Quaternion().setFromAxisAngle(up,-sign*extension*.25);
+    rotateWorld(chest,twist.multiply(chest.getWorldQuaternion(new T.Quaternion())));
+    aim('Neck','Head',headUp);aim('Head','HeadTop_End',headUp);
+    const head=world(bones.Head);
+    for(const h of hands){
+      const e=h.side===active?extension:0,guard=head.clone().add(V(h.s*.14,-.10,.16)),end=guard.clone();end.x=head.x+h.s*.115;
+      const shoulder=world(h.upper),reach=h.L1+h.L2-.008,dx=end.x-shoulder.x,dy=end.y-shoulder.y;
+      end.z=shoulder.z+Math.sqrt(Math.max(.01,reach*reach-dx*dx-dy*dy));
+      h.target.copy(guard).lerp(end,e);
+      solve(h,h.target,V(h.s*.20,-1,-.10),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const forearm=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0).lerp(up.clone().negate(),e).normalize();
+      orientSegment(h.side+'ForeArm',h.side+'Hand',forearm,palm);
+      orientSegment(h.side+'Hand',h.side+'HandMiddle1',forearm,palm);
+      closeFist(h,palm);
+    }
+  }
   function standingArms(raise){for(const f of feet){aim(f.side+'Arm',f.side+'ForeArm',V(f.s*.12,-Math.cos(raise),Math.sin(raise)));aim(f.side+'ForeArm',f.side+'Hand',V(-f.s*.08,-Math.cos(raise+.32),Math.sin(raise+.32)));}}
   const floorSamples=[],sampleDirections=[];for(const x of [-1,0,1])for(const y of [-1,0,1])for(const z of [-1,0,1])if(x||y||z)sampleDirections.push([x,y,z]);
   model.traverse(m=>{if(!m.isSkinnedMesh)return;const buckets=new Map(),pos=m.geometry.attributes.position,weights=m.geometry.attributes.skinWeight,indices=m.geometry.attributes.skinIndex;for(let i=0;i<pos.count;i++){let joint=indices.array[i*4],highest=weights.array[i*4];for(let k=1;k<4;k++)if(weights.array[i*4+k]>highest){highest=weights.array[i*4+k];joint=indices.array[i*4+k];}const p=V().fromBufferAttribute(pos,i);let bucket=buckets.get(joint);if(!bucket){bucket=Array(26).fill(null);buckets.set(joint,bucket);}for(let k=0;k<26;k++){const d=sampleDirections[k],score=p.x*d[0]+p.y*d[1]+p.z*d[2];if(!bucket[k]||score>bucket[k].score)bucket[k]={i,score};}}floorSamples.push({mesh:m,indices:[...new Set([...buckets.values()].flat().filter(Boolean).map(x=>x.i))]});});
@@ -99,6 +133,7 @@ export function createNaturalRig(model){
     }
     if(exercise==='crunch')crossedChestArms(up);
     if(exercise==='steptouch')stepTouchClap(t,up);
+    if(exercise==='punch')straightPunch(t,up,headUp);
     // Keep the full skin above the floor, then restore planted support targets.
     raiseAboveFloor(root,up);
     for(const foot of feet){const l=f['leg'+(foot.side==='Left'?'N':'F')],height=(128-l.end[1])*pointScale;const planted=height<.13||(height<.25&&l.ea<65&&l.ea>0);if(!planted)continue;
