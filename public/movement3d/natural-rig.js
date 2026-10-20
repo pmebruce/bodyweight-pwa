@@ -6,7 +6,7 @@ export function depthAt(t){const smooth=x=>x*x*(3-2*x);if(t<.12)return 0;if(t<.5
 export function createNaturalRig(model){
   model.updateMatrixWorld(true);
   const aliases={pelvis:'Hips',spine_01:'Spine',spine_02:'Spine1',spine_03:'Spine2',neck_01:'Neck',head:'Head'};
-  for(const [suffix,side] of [['l','Left'],['r','Right']])for(const [src,dst] of Object.entries({clavicle:'Shoulder',upperarm:'Arm',lowerarm:'ForeArm',hand:'Hand',middle_01:'HandMiddle1',thigh:'UpLeg',calf:'Leg',foot:'Foot',ball:'ToeBase'}))aliases[src+'_'+suffix]=side+dst;
+  for(const [suffix,side] of [['l','Left'],['r','Right']])for(const [src,dst] of Object.entries({clavicle:'Shoulder',upperarm:'Arm',lowerarm:'ForeArm',hand:'Hand',middle_01:'HandMiddle1',thumb_01:'HandThumb1',thumb_02:'HandThumb2',thumb_03:'HandThumb3',thigh:'UpLeg',calf:'Leg',foot:'Foot',ball:'ToeBase'}))aliases[src+'_'+suffix]=side+dst;
   const bones={};model.traverse(o=>{if(o.isBone&&aliases[o.name])bones[aliases[o.name]]=o;});
   const headTip=new T.Bone();headTip.position.set(0,.12,0);bones.Head.add(headTip);bones.HeadTop_End=headTip;model.updateMatrixWorld(true);
   const rest=new Map();model.traverse(o=>{if(o.isBone)rest.set(o,{p:o.position.clone(),q:o.quaternion.clone(),wq:o.getWorldQuaternion(new T.Quaternion()),wp:o.getWorldPosition(V())});});
@@ -19,6 +19,12 @@ export function createNaturalRig(model){
   }
   const feet=['Right','Left'].map((side,i)=>{const upper=bones[side+'UpLeg'],lower=bones[side+'Leg'],foot=bones[side+'Foot'];return {side,s:i===0?-1:1,upper,lower,foot,L1:world(upper).distanceTo(world(lower)),L2:world(lower).distanceTo(world(foot)),target:V(i===0?-.18:.18,world(foot).y,-.048),footQ:rest.get(foot).wq.clone()};});
   const hands=['Right','Left'].map((side,i)=>({side,s:i===0?-1:1,upper:bones[side+'Arm'],lower:bones[side+'ForeArm'],end:bones[side+'Hand'],L1:world(bones[side+'Arm']).distanceTo(world(bones[side+'ForeArm'])),L2:world(bones[side+'ForeArm']).distanceTo(world(bones[side+'Hand'])),target:V()}));
+  const handNormals={};
+  for(const h of hands){
+    const suffix=h.side==='Left'?'_l':'_r',index=[...rest.keys()].find(b=>b.name==='index_01'+suffix),pinky=[...rest.keys()].find(b=>b.name==='pinky_01'+suffix);
+    const width=rest.get(index).wp.clone().sub(rest.get(pinky).wp),normal=width.cross(axis(h.side+'Hand',h.side+'HandMiddle1')).normalize();
+    if(normal.dot(V(-h.s,0,0))<0)normal.negate();handNormals[h.side]=normal;
+  }
   let exercise='squat',flipped=false,highlighted=false,stanceWidth=.50;const motionCache=new Map();
   function solve(chain,C,pole,a,b,c){const A=world(chain.upper),d=C.clone().sub(A),D=T.MathUtils.clamp(d.length(),Math.abs(chain.L1-chain.L2)+.0001,chain.L1+chain.L2-.0001),u=d.clone().normalize();const along=(chain.L1**2-chain.L2**2+D**2)/(2*D);const h=Math.sqrt(Math.max(0,chain.L1**2-along**2));const n=pole.clone().addScaledVector(u,-pole.dot(u)).normalize();const B=A.clone().addScaledVector(u,along).addScaledVector(n,h);aim(a,b,B.clone().sub(A));aim(b,c,A.clone().addScaledVector(u,D).sub(world(chain.lower)));}
   function rootAt(p,up){const hips=bones.Hips;hips.position.copy(hips.parent.worldToLocal(p.clone()));rotateWorld(hips,new T.Quaternion().setFromUnitVectors(V(0,1,0),up.clone().normalize()).multiply(rest.get(hips).wq));model.updateMatrixWorld(true);}
@@ -37,6 +43,28 @@ export function createNaturalRig(model){
       const basis=(f,n)=>new T.Matrix4().makeBasis(f,n,f.clone().cross(n).normalize());
       const delta=new T.Quaternion().setFromRotationMatrix(basis(finger,palm).multiply(basis(restFinger,restPalm).invert()));
       rotateWorld(h.end,delta.multiply(rest.get(h.end).wq));
+    }
+  }
+  function orientSegment(a,b,dir,palm){
+    const finger=dir.clone().normalize(),normal=palm.clone().addScaledVector(finger,-palm.dot(finger)).normalize();
+    const restAxis=axis(a,b),restNormal=handNormals[a.startsWith('Left')?'Left':'Right'].clone();restNormal.addScaledVector(restAxis,-restNormal.dot(restAxis)).normalize();
+    const basis=(f,n)=>new T.Matrix4().makeBasis(f,n,f.clone().cross(n).normalize());
+    const delta=new T.Quaternion().setFromRotationMatrix(basis(finger,normal).multiply(basis(restAxis,restNormal).invert()));
+    rotateWorld(bones[a],delta.multiply(rest.get(bones[a]).wq));
+  }
+  function stepTouchClap(t,up){
+    const clap=.5+.5*Math.cos(4*Math.PI*t),forward=V(0,0,1),right=up.clone().cross(forward).normalize(),chest=world(bones.Spine2);
+    for(const h of hands){
+      h.target.copy(chest).addScaledVector(right,h.s*lerp(.40,.052,clap)).addScaledVector(up,lerp(.045,.17,clap)).addScaledVector(forward,lerp(.16,.32,clap));
+      solve(h,h.target,right.clone().multiplyScalar(h.s*.15).addScaledVector(up,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const forearm=world(h.end).sub(world(h.lower)).normalize(),palm=right.clone().multiplyScalar(-h.s);
+      // Forearm roll follows the palm; wrist flexion eases into upright palms.
+      orientSegment(h.side+'ForeArm',h.side+'Hand',forearm,palm);
+      const finger=forearm.clone().addScaledVector(right,-forearm.dot(right)*clap).normalize();
+      orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);
+      // Tuck the open-model thumbs along the palm, outside the contact gap.
+      orientSegment(h.side+'HandThumb1',h.side+'HandThumb2',finger.clone().addScaledVector(forward,-.45),palm);
+      orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',finger.clone().addScaledVector(forward,-.15),palm);
     }
   }
   function standingArms(raise){for(const f of feet){aim(f.side+'Arm',f.side+'ForeArm',V(f.s*.12,-Math.cos(raise),Math.sin(raise)));aim(f.side+'ForeArm',f.side+'Hand',V(-f.s*.08,-Math.cos(raise+.32),Math.sin(raise+.32)));}}
@@ -70,6 +98,7 @@ export function createNaturalRig(model){
       }
     }
     if(exercise==='crunch')crossedChestArms(up);
+    if(exercise==='steptouch')stepTouchClap(t,up);
     // Keep the full skin above the floor, then restore planted support targets.
     raiseAboveFloor(root,up);
     for(const foot of feet){const l=f['leg'+(foot.side==='Left'?'N':'F')],height=(128-l.end[1])*pointScale;const planted=height<.13||(height<.25&&l.ea<65&&l.ea>0);if(!planted)continue;
