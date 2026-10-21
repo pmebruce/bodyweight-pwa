@@ -1599,7 +1599,7 @@ function createMotion(name) {
   const durs = d.keys.map((_, i) => Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur);
   const rig = new Rig(d.keys, d.front, { durs, smooth: d.smooth, lag: d.lag, headLag: d.headLag, yaw: 0, hand: d.hand });
   const total = durs.reduce((a, b) => a + b, 0);
-  return { at: (t) => rig.at(t), still: durs.slice(0, d.still ?? 0).reduce((a, b) => a + b, 0) / total };
+  return { at: (t) => rig.at(t), still: name === "uppercut" ? 0.25 : durs.slice(0, d.still ?? 0).reduce((a, b) => a + b, 0) / total };
 }
 export {
   MOTIONS,

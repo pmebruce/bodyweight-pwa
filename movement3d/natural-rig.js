@@ -25,7 +25,7 @@ export function createNaturalRig(model){
     const width=rest.get(index).wp.clone().sub(rest.get(pinky).wp),normal=width.cross(axis(h.side+'Hand',h.side+'HandMiddle1')).normalize();
     if(normal.dot(V(-h.s,0,0))<0)normal.negate();handNormals[h.side]=normal;
   }
-  let exercise='squat',flipped=false,highlighted=false,stanceWidth=.50;const motionCache=new Map();
+  let exercise='squat',flipped=false,highlighted=false,stanceWidth=.50;const motionCache=new Map(),handGuideCache=new Map();
   function solve(chain,C,pole,a,b,c){const A=world(chain.upper),d=C.clone().sub(A),D=T.MathUtils.clamp(d.length(),Math.abs(chain.L1-chain.L2)+.0001,chain.L1+chain.L2-.0001),u=d.clone().normalize();const along=(chain.L1**2-chain.L2**2+D**2)/(2*D);const h=Math.sqrt(Math.max(0,chain.L1**2-along**2));const n=pole.clone().addScaledVector(u,-pole.dot(u)).normalize();const B=A.clone().addScaledVector(u,along).addScaledVector(n,h);aim(a,b,B.clone().sub(A));aim(b,c,A.clone().addScaledVector(u,D).sub(world(chain.lower)));}
   function rootAt(p,up){const hips=bones.Hips;hips.position.copy(hips.parent.worldToLocal(p.clone()));rotateWorld(hips,new T.Quaternion().setFromUnitVectors(V(0,1,0),up.clone().normalize()).multiply(rest.get(hips).wq));model.updateMatrixWorld(true);}
   function torso(up,headUp=up){aim('Spine','Spine1',up);aim('Spine1','Spine2',up);aim('Spine2','Neck',up);aim('Neck','Head',headUp);aim('Head','HeadTop_End',headUp);}
@@ -38,11 +38,7 @@ export function createNaturalRig(model){
       // A single-vector aim leaves wrist roll undetermined as the torso curls.
       const finger=V(-h.s*.55,0,0).addScaledVector(up,.83).normalize();
       const palm=forward.clone().negate();palm.addScaledVector(finger,-palm.dot(finger)).normalize();
-      const restFinger=axis(h.side+'Hand',h.side+'HandMiddle1');
-      const restPalm=V(0,0,1).addScaledVector(restFinger,-restFinger.z).normalize();
-      const basis=(f,n)=>new T.Matrix4().makeBasis(f,n,f.clone().cross(n).normalize());
-      const delta=new T.Quaternion().setFromRotationMatrix(basis(finger,palm).multiply(basis(restFinger,restPalm).invert()));
-      rotateWorld(h.end,delta.multiply(rest.get(h.end).wq));
+      orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);
     }
   }
   function orientSegment(a,b,dir,palm){
@@ -67,14 +63,14 @@ export function createNaturalRig(model){
       orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',finger.clone().addScaledVector(forward,-.15),palm);
     }
   }
-  function closeFist(h,palm){
+  function closeFist(h,palm,amount=1){
     const suffix=h.side==='Left'?'_l':'_r';
     for(const [b,r] of rest)if(/^(index|middle|ring|pinky)_/.test(b.name)&&b.name.endsWith(suffix))b.quaternion.copy(r.q);
     model.updateMatrixWorld(true);
     for(const name of ['index','middle','ring','pinky']){
       const joints=[1,2,3].map(i=>[...rest.keys()].find(b=>b.name===name+'_0'+i+suffix));
       const direction=world(joints[1]).sub(world(joints[0])).normalize(),hinge=direction.cross(palm).normalize();
-      for(let i=0;i<3;i++){const b=joints[i];rotateWorld(b,new T.Quaternion().setFromAxisAngle(hinge,[1.05,1.45,.85][i]).multiply(b.getWorldQuaternion(new T.Quaternion())));}
+      for(let i=0;i<3;i++){const b=joints[i];rotateWorld(b,new T.Quaternion().setFromAxisAngle(hinge,[1.05,1.45,.85][i]*amount).multiply(b.getWorldQuaternion(new T.Quaternion())));}
     }
     const index=[...rest.keys()].find(b=>b.name==='index_02'+suffix),thumb=bones[h.side+'HandThumb1'];
     const target=world(index).addScaledVector(palm,.012);
@@ -99,6 +95,74 @@ export function createNaturalRig(model){
       orientSegment(h.side+'ForeArm',h.side+'Hand',forearm,palm);
       orientSegment(h.side+'Hand',h.side+'HandMiddle1',forearm,palm);
       closeFist(h,palm);
+    }
+  }
+  function uppercut(t,up,headUp){
+    const phase=(t*2)%1,smooth=x=>x*x*(3-2*x),active=t<.5?'Left':'Right',sign=active==='Left'?1:-1;
+    const load=phase<.22?smooth(phase/.22):phase<.50?1:phase<.78?1-smooth((phase-.50)/.28):0;
+    const strike=phase<.22?0:phase<.50?smooth((phase-.22)/.28):phase<.78?1-smooth((phase-.50)/.28):0;
+    const chest=bones.Spine2;rotateWorld(chest,new T.Quaternion().setFromAxisAngle(up,-sign*strike*.25).multiply(chest.getWorldQuaternion(new T.Quaternion())));
+    aim('Neck','Head',headUp);aim('Head','HeadTop_End',headUp);const head=world(bones.Head);
+    for(const h of hands){
+      const on=h.side===active,L=on?load:0,S=on?strike:0;
+      h.target.copy(head).add(V(h.s*lerp(.14,.11,S),-.10-.33*L+.36*S,.16+.06*L+.17*S));
+      solve(h,h.target,V(h.s*.16,-1,-.15),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0).lerp(V(0,0,-1),S).normalize();
+      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm);
+    }
+  }
+  function resetDigits(h){for(const [b,r] of rest)if(/^(thumb|index|middle|ring|pinky)_/.test(b.name)&&b.name.endsWith(h.side==='Left'?'_l':'_r'))b.quaternion.copy(r.q);model.updateMatrixWorld(true);}
+  function handsBesideHead(){
+    const frame=bones.Head.getWorldQuaternion(new T.Quaternion()).multiply(rest.get(bones.Head).wq.clone().invert());
+    const right=V(1,0,0).applyQuaternion(frame),up=V(0,1,0).applyQuaternion(frame),forward=V(0,0,1).applyQuaternion(frame);
+    for(const h of hands){
+      h.target.copy(world(bones.Head)).addScaledVector(right,h.s*.14).addScaledVector(up,.005).addScaledVector(forward,.015);
+      solve(h,h.target,right.clone().multiplyScalar(h.s*.45).addScaledVector(forward,.9).addScaledVector(up,-.15),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const fore=world(h.end).sub(world(h.lower)).normalize(),finger=fore.clone().addScaledVector(right,-fore.dot(right)).normalize(),palm=right.clone().multiplyScalar(-h.s);
+      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);resetDigits(h);
+    }
+  }
+  function kickClap(t){
+    const clap=Math.sin(2*Math.PI*t)**2,center=world(hands[0].end).add(world(hands[1].end)).multiplyScalar(.5);center.y+=.13*clap;
+    center.x=lerp(center.x,world(feet[t<.5?1:0].foot).x,clap);
+    for(const h of hands){
+      h.target.copy(center).add(V(h.s*lerp(.28,.052,clap),0,0));solve(h,h.target,V(h.s*.25,-1,0),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0),finger=fore.clone();finger.x*=1-clap;finger.normalize();
+      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);resetDigits(h);
+      orientSegment(h.side+'HandThumb1',h.side+'HandThumb2',finger.clone().add(V(0,0,-.45)),palm);orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',finger.clone().add(V(0,0,-.15)),palm);
+    }
+  }
+  // One guide per complete cycle avoids a roll flip near an aim-axis singularity.
+  function handGuides(){
+    if(handGuideCache.has(exercise))return handGuideCache.get(exercise);
+    const motion=motionCache.get(exercise),guides={};
+    for(const h of hands){
+      const dirs=[];let front=true;
+      for(let i=0;i<64;i++){const f=motion.at(i/64),l=f['arm'+(h.side==='Left'?'N':'F')],xy=[l.end[0]-l.mid[0],l.end[1]-l.mid[1]];front=f.front;let z=l.ze-l.zm;if(front&&Math.abs(z)<1e-6&&l.fs<.99)z=Math.sqrt(Math.max(0,16**2-xy[0]**2-xy[1]**2));dirs.push(direction(f,xy,z).normalize());}
+      const preferred=front?V(0,0,1):V(-h.s,0,0);let best,score=Infinity;
+      for(const x of [-1,0,1])for(const y of [-1,0,1])for(const z of [-1,0,1]){if(!x&&!y&&!z)continue;const n=V(x,y,z).normalize(),cost=Math.max(...dirs.map(d=>Math.abs(d.dot(n))))+.03*(1-n.dot(preferred));if(cost<score){score=cost;best=n;}}
+      guides[h.side]=best;
+    }
+    handGuideCache.set(exercise,guides);return guides;
+  }
+  function finishHands(f,t){
+    if(['punch','uppercut','steptouch','crunch','situp'].includes(exercise))return;
+    if(['bicycle','sidecrunch'].includes(exercise)){handsBesideHead();return;}
+    if(exercise==='kickclap'){kickClap(t);return;}
+    for(const h of hands){
+      const l=f['arm'+(h.side==='Left'?'N':'F')],fore=world(h.end).sub(world(h.lower)).normalize();resetDigits(h);
+      const contact=l.hand==='flat'?T.MathUtils.smoothstep(.36-world(h.end).y,0,.20):0;
+      if(contact>0||exercise==='dips'){
+        const palm=handGuides()[h.side];orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
+        const neutral=h.end.getWorldQuaternion(new T.Quaternion());orientSegment(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1),V(0,-1,0));
+        const flat=h.end.getWorldQuaternion(new T.Quaternion());rotateWorld(h.end,neutral.slerp(flat,exercise==='dips'?1:contact));
+      }else if(exercise==='pullup'){
+        orientSegment(h.side+'ForeArm',h.side+'Hand',fore,V(0,0,1));orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,V(0,0,1));closeFist(h,V(0,0,1),.75);
+      }else{
+        const palm=l.hand==='fist'?V(-h.s,0,.15).normalize():handGuides()[h.side];
+        orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
+        if(l.hand==='fist')closeFist(h,palm);
+      }
     }
   }
   function standingArms(raise){for(const f of feet){aim(f.side+'Arm',f.side+'ForeArm',V(f.s*.12,-Math.cos(raise),Math.sin(raise)));aim(f.side+'ForeArm',f.side+'Hand',V(-f.s*.08,-Math.cos(raise+.32),Math.sin(raise+.32)));}}
@@ -128,12 +192,13 @@ export function createNaturalRig(model){
         const angle=f.front?l.toe*.85:T.MathUtils.clamp((90-l.ea)*rad,-1.2,1.3);
         rotateWorld(chain.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),angle).multiply(chain.footQ));
       }else{
-        const finger=direction(f,[Math.sin(l.ea*rad)*l.fc,Math.cos(l.ea*rad)],f.front?.15:0);aim(side+'Hand',side+'HandMiddle1',finger);if(l.hand==='fist'||l.hand==='grip'){const closed=l.hand==='fist'?.85:.65;for(const bone of rest.keys()){if(!/^(index|middle|ring|pinky)_/.test(bone.name)||!bone.name.endsWith(side==='Left'?'_l':'_r'))continue;const level=Number(bone.name.split('_')[1]);bone.quaternion.multiply(new T.Quaternion().setFromAxisAngle(V(1,0,0),level===1?closed:level===2?1.0:.65));}model.updateMatrixWorld(true);}
+        const finger=direction(f,[Math.sin(l.ea*rad)*l.fc,Math.cos(l.ea*rad)],f.front?.15:0);aim(side+'Hand',side+'HandMiddle1',finger);
       }
     }
-    if(exercise==='crunch')crossedChestArms(up);
+    if(exercise==='crunch'||exercise==='situp')crossedChestArms(up);
     if(exercise==='steptouch')stepTouchClap(t,up);
     if(exercise==='punch')straightPunch(t,up,headUp);
+    if(exercise==='uppercut')uppercut(t,up,headUp);
     // Keep the full skin above the floor, then restore planted support targets.
     raiseAboveFloor(root,up);
     for(const foot of feet){const l=f['leg'+(foot.side==='Left'?'N':'F')],height=(128-l.end[1])*pointScale;const planted=height<.13||(height<.25&&l.ea<65&&l.ea>0);if(!planted)continue;
@@ -141,11 +206,15 @@ export function createNaturalRig(model){
       const target=f.front?V((l.end[0]-100)*pointScale+foot.s*.035*f.pFwd[0],ankleY,l.ze*pointScale):V(foot.s*.12,ankleY,(l.end[0]-100)*pointScale);
       const pole=direction(f,[l.mid[0]-l.root[0],l.mid[1]-l.root[1]],l.zm).normalize();solve(foot,target,pole,foot.side+'UpLeg',foot.side+'Leg',foot.side+'Foot');foot.target.copy(target);
     }
-    for(const h of hands){const l=f['arm'+(h.side==='Left'?'N':'F')],height=(128-l.end[1])*pointScale;if(height>.065||MOTIONS[exercise].prop)continue;h.target.copy(f.front?V((l.end[0]-100)*pointScale,.078,l.ze*pointScale):V(h.s*.24,.078,(l.end[0]-100)*pointScale));solve(h,h.target,V(h.s*.45,0,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');aim(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1));}
-    if(exercise==='pullup'||exercise==='dips'){
-      for(const h of hands){const l=f['arm'+(h.side==='Left'?'N':'F')];h.target.copy(f.front?V((l.end[0]-100)*pointScale,(128-l.end[1])*pointScale,0):V(h.s*.21,(128-l.end[1])*pointScale+.025,(l.end[0]-100)*pointScale));solve(h,h.target,exercise==='pullup'?V(h.s,0,-.3):V(h.s*.2,0,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');}
+    if(exercise==='dips'){
+      root.y-=.045;rootAt(root,up);
+      for(const foot of feet){solve(foot,foot.target,V(0,0,1),foot.side+'UpLeg',foot.side+'Leg',foot.side+'Foot');rotateWorld(foot.foot,foot.footQ);}
     }
-    model.updateMatrixWorld(true);raiseAboveFloor(root,up);model.updateMatrixWorld(true);
+    for(const h of hands){const l=f['arm'+(h.side==='Left'?'N':'F')],height=(128-l.end[1])*pointScale;if(height>.065||MOTIONS[exercise].prop)continue;h.target.copy(f.front?V((l.end[0]-100)*pointScale,.078,l.ze*pointScale):V(h.s*.24,.078,(l.end[0]-100)*pointScale));solve(h,h.target,V(h.s*.45,0,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');orientSegment(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1),V(0,-1,0));}
+    if(exercise==='pullup'||exercise==='dips'){
+      for(const h of hands){const l=f['arm'+(h.side==='Left'?'N':'F')];h.target.copy(f.front?V((l.end[0]-100)*pointScale,(128-l.end[1])*pointScale,0):V(h.s*.21,(128-l.end[1])*pointScale+.025,(l.end[0]-100)*pointScale));if(exercise==='pullup'){h.target.y-=.065;h.target.z=-.025;}else{h.target.z=-.49;}solve(h,h.target,exercise==='pullup'?V(h.s,0,-.3):V(h.s*.2,0,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');}
+    }
+    finishHands(f,t);model.updateMatrixWorld(true);raiseAboveFloor(root,up);model.updateMatrixWorld(true);
   }
   function pose(t){const q=depthAt(t);
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
@@ -169,7 +238,7 @@ export function createNaturalRig(model){
     }else if(exercise==='pushup'){
       const up=V(0,lerp(.18,-.03,q),1).normalize();rootAt(V(0,lerp(.38,.24,q),0),up);const A=world(feet[0].upper),length=Math.min(...feet.map(f=>f.L1+f.L2))-.001,dy=A.y-.232,dx=A.x+.10;const rootZ=-1.21+Math.sqrt(length*length-dy*dy-dx*dx)-A.z;rootAt(V(0,lerp(.38,.24,q),rootZ),up);torso(up,up);
       for(const f of feet){f.target.set(f.s*.10,.232,-1.21);solve(f,f.target,V(0,-1,0),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),.92).multiply(f.footQ));}
-      for(const h of hands){h.target.set(h.s*.275,.078,.245);solve(h,h.target,V(h.s,0,-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');aim(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1));}
+      for(const h of hands){h.target.set(h.s*.275,.078,.245);solve(h,h.target,V(h.s,0,-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');orientSegment(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1),V(0,-1,0));}
     }else if(exercise==='lunge'){
       const tilt=.10+.09*q;rootAt(V(0,lerp(.81,.53,q),-.10),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.02));
       for(const f of feet){const front=(f.s===-1)!==flipped;f.target.set(f.s*.12,front?.074:.174,front?.38:-.55);solve(f,f.target,V(0,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),front?0:.60).multiply(f.footQ));}standingArms(.45);
