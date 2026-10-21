@@ -112,6 +112,29 @@ export function createNaturalRig(model){
     }
   }
   function resetDigits(h){for(const [b,r] of rest)if(/^(thumb|index|middle|ring|pinky)_/.test(b.name)&&b.name.endsWith(h.side==='Left'?'_l':'_r'))b.quaternion.copy(r.q);model.updateMatrixWorld(true);}
+  // A held chest gesture needs its own targets; neutral wrist alignment alone
+  // turns the old projected clasp into two forward-facing open palms.
+  function chestHandsTogether(up){
+    const forward=V(0,0,1),right=up.clone().cross(forward).normalize(),chest=world(bones.Spine2);
+    for(const h of hands){
+      h.target.copy(chest).addScaledVector(up,.17).addScaledVector(forward,.27).addScaledVector(right,h.s*.058);
+      solve(h,h.target,right.clone().multiplyScalar(h.s*.15).addScaledVector(up,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const fore=world(h.end).sub(world(h.lower)).normalize(),palm=right.clone().multiplyScalar(-h.s),finger=fore.clone().addScaledVector(right,-fore.dot(right)).normalize();
+      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);
+      relaxDigits(h,palm,.10);
+    }
+  }
+  function relaxDigits(h,palm,amount=.18){
+    resetDigits(h);const suffix=h.side==='Left'?'_l':'_r';
+    for(const name of ['index','middle','ring','pinky']){
+      const joints=[1,2,3].map(i=>[...rest.keys()].find(b=>b.name===name+'_0'+i+suffix));
+      const hinge=world(joints[1]).sub(world(joints[0])).normalize().cross(palm).normalize();
+      for(let i=0;i<3;i++)rotateWorld(joints[i],new T.Quaternion().setFromAxisAngle(hinge,[.7,1,.6][i]*amount).multiply(joints[i].getWorldQuaternion(new T.Quaternion())));
+    }
+    const finger=world(bones[h.side+'HandMiddle1']).sub(world(h.end)).normalize();
+    orientSegment(h.side+'HandThumb1',h.side+'HandThumb2',finger.clone().addScaledVector(palm,.25),palm);
+    orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',finger,palm);
+  }
   function handsBesideHead(){
     const frame=bones.Head.getWorldQuaternion(new T.Quaternion()).multiply(rest.get(bones.Head).wq.clone().invert());
     const right=V(1,0,0).applyQuaternion(frame),up=V(0,1,0).applyQuaternion(frame),forward=V(0,0,1).applyQuaternion(frame);
@@ -149,6 +172,7 @@ export function createNaturalRig(model){
     if(['punch','uppercut','steptouch','crunch','situp'].includes(exercise))return;
     if(['bicycle','sidecrunch'].includes(exercise)){handsBesideHead();return;}
     if(exercise==='kickclap'){kickClap(t);return;}
+    if(exercise==='sidelunge'){chestHandsTogether(direction(f,f.axis));return;}
     for(const h of hands){
       const l=f['arm'+(h.side==='Left'?'N':'F')],fore=world(h.end).sub(world(h.lower)).normalize();resetDigits(h);
       const contact=l.hand==='flat'?T.MathUtils.smoothstep(.36-world(h.end).y,0,.20):0;
@@ -159,9 +183,10 @@ export function createNaturalRig(model){
       }else if(exercise==='pullup'){
         orientSegment(h.side+'ForeArm',h.side+'Hand',fore,V(0,0,1));orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,V(0,0,1));closeFist(h,V(0,0,1),.75);
       }else{
-        const palm=l.hand==='fist'?V(-h.s,0,.15).normalize():handGuides()[h.side];
+        const hipHand=exercise==='sideleg';
+        const palm=hipHand?V(-h.s,0,0):l.hand==='fist'?V(-h.s,0,.15).normalize():handGuides()[h.side];
         orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
-        if(l.hand==='fist')closeFist(h,palm);
+        if(l.hand==='fist')closeFist(h,palm);else if(l.hand==='relax')relaxDigits(h,palm);
       }
     }
   }
@@ -249,7 +274,13 @@ export function createNaturalRig(model){
     }else{
       const hipLead=Math.sin(q*Math.PI)*.025,tilt=q*.43+hipLead;const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=stanceWidth/2-Math.abs(hp.x),dz=-.048-(-.055+hp.z-rootRest.z),startY=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);rootAt(V(0,lerp(startY,.59,q),lerp(-.055,-.35,q)-hipLead),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.08*q));
       for(const f of feet){f.target.set(f.s*stanceWidth/2,.074,-.048);solve(f,f.target,V(f.s*.20,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.18).multiply(f.footQ));}const armQ=depthAt((t+.985)%1);standingArms(lerp(.18,1.38,armQ));
-    }model.updateMatrixWorld(true);
+    }
+    if(exercise!=='pushup')for(const h of hands){
+      const fore=world(h.end).sub(world(h.lower)).normalize(),palm=exercise==='armcircle'?V(0,-1,0):exercise==='jack'?V(0,0,1):V(-h.s,0,0);
+      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
+      if(exercise==='lunge')relaxDigits(h,palm);
+    }
+    model.updateMatrixWorld(true);
   }
   const meshes=[];
   model.traverse(o=>{if(!o.isSkinnedMesh)return;
