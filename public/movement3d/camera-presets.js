@@ -1,5 +1,5 @@
 // Floor and seated exercises use side views across the entire movement cycle.
-const SIDE_VIEWS=new Set(['pushup','diamond','plank','burpee','climber','bridge','situp','crunch','superman','sideplank','birddog','bicycle','dips','wallsit']);
+const SIDE_VIEWS=new Set(['pushup','diamond','plank','burpee','climber','bridge','situp','crunch','superman','sideplank','birddog','bicycle','dips','wallsit','dbfloorpress','dbrenegade','dbbridge']);
 export function cameraPresets(exercise){
   if(SIDE_VIEWS.has(exercise)){
     // Side plank lies along X; other floor movements lie along Z.

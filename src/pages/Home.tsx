@@ -19,7 +19,8 @@ export default function Home() {
   const suggested = plans[(lastIdx + 1) % plans.length] ?? plans[0]
   const est = planEstimate(suggested)
   const aero = plans.filter((p) => p.kind === 'aero')
-  const fit = plans.filter((p) => p.kind !== 'aero')
+  const fit = plans.filter((p) => !p.kind)
+  const db = plans.filter((p) => p.kind === 'db')
   const now = new Date()
   const R = 30
   const C = 2 * Math.PI * R
@@ -111,6 +112,19 @@ export default function Home() {
       <p className="section-sub muted">跟著動、不用器材，安靜版不跳躍也能燃脂</p>
       <div className="plan-scroll">
         {aero.map((p, i) => (
+          <PlanCard key={p.id} plan={p} index={i} />
+        ))}
+      </div>
+
+      <div className="section-head">
+        <h2>啞鈴訓練</h2>
+        <button className="link" onClick={() => navigate('/plans')}>
+          全部 <Icon name="chevron" size={14} />
+        </button>
+      </div>
+      <p className="section-sub muted">一對可調式啞鈴，記錄重量、穩定進步</p>
+      <div className="plan-scroll">
+        {db.map((p, i) => (
           <PlanCard key={p.id} plan={p} index={i} />
         ))}
       </div>

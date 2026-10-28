@@ -621,7 +621,21 @@ var DEMO_HAND = {
   uppercut: "fist",
   sideleg: "relax",
   hula: "relax",
-  sidelunge: "relax"
+  sidelunge: "relax",
+  dbgoblet: "fist",
+  dbrdl: "fist",
+  dbrow: "fist",
+  dbfloorpress: "fist",
+  dbpress: "fist",
+  dblateral: "fist",
+  dbcurl: "fist",
+  dbhammer: "fist",
+  dbtricep: "fist",
+  dbrevlunge: "fist",
+  dbrenegade: "fist",
+  dbfarmer: "fist",
+  dbcalf: "fist",
+  dbbridge: "fist"
 };
 var DEMOS = {
   squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [1100, 850], still: 1 },
@@ -1023,6 +1037,185 @@ var DEMOS = {
     ],
     dur: [500, 500, 800, 450, 450, 500, 500, 800, 450, 450],
     still: 2
+  },
+  /* ================= 啞鈴 (dumbbells), side view facing right unless noted ================= */
+  // goblet squat: one bell at the chest, elbows down; slow 2 s lowering, brief pause, drive up
+  dbgoblet: {
+    view: view(104, 170),
+    db: "one",
+    keys: [
+      k([98, 72.6], 179, { armN: fk(18, 138), armF: fk(16, 140), legN: flat(101), legF: flat(98) }, { n: 0 }),
+      k([86, 97.5], 150, { armN: fk(44, 128), armF: fk(42, 130), legN: flat(101), legF: flat(98) }, { n: 16 }),
+      k([86, 97.5], 150, { armN: fk(44, 128), armF: fk(42, 130), legN: flat(101), legF: flat(98) }, { n: 16 })
+    ],
+    dur: [1500, 250, 950],
+    still: 1
+  },
+  // Romanian deadlift: hips travel back, knees stay soft, bells slide down the thighs, flat back
+  dbrdl: {
+    view: view(100, 170),
+    db: "pair",
+    headLag: 0.02,
+    keys: [
+      k([98, 73.2], 179, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([84, 75.4], 104, { armN: fk(8, 6), armF: fk(6, 6), legN: flat(100), legF: flat(97) }, { n: -22 }),
+      k([84, 75.4], 104, { armN: fk(8, 6), armF: fk(6, 6), legN: flat(100), legF: flat(97) }, { n: -22 })
+    ],
+    dur: [1600, 250, 1e3],
+    still: 1
+  },
+  // bent-over row: hinge held, elbows drive back to the hips, slow lower
+  dbrow: {
+    view: view(98, 170),
+    db: "pair",
+    keys: [
+      k([86, 75.6], 118, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(100), legF: flat(97) }, { n: -18 }),
+      k([86, 75.4], 119, { armN: fk(-68, 74), armF: fk(-70, 76), legN: flat(100), legF: flat(97) }, { n: -18 }),
+      k([86, 75.4], 119, { armN: fk(-68, 74), armF: fk(-70, 76), legN: flat(100), legF: flat(97) }, { n: -18 })
+    ],
+    dur: [750, 250, 1200],
+    still: 1
+  },
+  // floor press: lying, knees bent; upper arms touch the floor, then press to straight arms
+  dbfloorpress: {
+    view: view(95),
+    db: "pair",
+    keys: [
+      k([95, 121.4], 271.4, { armN: fk(84, 92), armF: fk(82, 94), legN: flat(118), legF: flat(115) }, { h: 272 }),
+      k([95, 121.4], 271.4, { armN: fk(176, 4), armF: fk(174, 4), legN: flat(118), legF: flat(115) }, { h: 272 }),
+      k([95, 121.4], 271.4, { armN: fk(176, 4), armF: fk(174, 4), legN: flat(118), legF: flat(115) }, { h: 272 })
+    ],
+    dur: [800, 200, 1300],
+    still: 1
+  },
+  // standing shoulder press: bells at the shoulders -> overhead, ribs down
+  dbpress: {
+    view: view(100, 180),
+    db: "pair",
+    keys: [
+      k([98, 73.2], 180, { armN: fk(26, 150), armF: fk(24, 152), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 72.8], 181, { armN: fk(172, 8), armF: fk(170, 8), legN: flat(100), legF: flat(97) }, { n: -2, sh: 0.6 }),
+      k([98, 72.8], 181, { armN: fk(172, 8), armF: fk(170, 8), legN: flat(100), legF: flat(97) }, { n: -2, sh: 0.6 })
+    ],
+    dur: [850, 200, 1250],
+    still: 1
+  },
+  // lateral raise (front view): elbows lead to shoulder height, slight forward angle
+  dblateral: {
+    view: view(100, 170),
+    front: true,
+    db: "pair",
+    lag: 0.01,
+    keys: [
+      k([100, hipY(100, 180, FLAT(106), FLAT(94), 1.2)], 180, { ...both(arm3(10, 8, 14, 4)), legN: ff(106), legF: ff(94) }, { pa: 180, h: 180 }),
+      k([100, hipY(100, 180, FLAT(106), FLAT(94), 1.2)], 180, { ...both(arm3(84, 16, 16, 6)), legN: ff(106), legF: ff(94) }, { pa: 180, h: 180, sh: 0.3 }),
+      k([100, hipY(100, 180, FLAT(106), FLAT(94), 1.2)], 180, { ...both(arm3(84, 16, 16, 6)), legN: ff(106), legF: ff(94) }, { pa: 180, h: 180, sh: 0.3 })
+    ],
+    dur: [900, 200, 1300],
+    still: 1
+  },
+  // biceps curl: upper arms pinned, elbows drift slightly forward at the top
+  dbcurl: {
+    view: view(100, 170),
+    db: "pair",
+    keys: [
+      k([98, 73.2], 180, { armN: fk(4, 10), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(16, 142), armF: fk(14, 144), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(16, 142), armF: fk(14, 144), legN: flat(100), legF: flat(97) }, { n: 0 })
+    ],
+    dur: [800, 200, 1300],
+    still: 1
+  },
+  // hammer curl: alternating arms
+  dbhammer: {
+    view: view(100, 170),
+    db: "pair",
+    keys: [
+      k([98, 73.2], 180, { armN: fk(4, 10), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(14, 140), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180, { armN: fk(4, 10), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(4, 10), armF: fk(12, 142), legN: flat(100), legF: flat(97) }, { n: 0 })
+    ],
+    dur: [800, 1200, 800, 1200],
+    still: 1
+  },
+  // overhead triceps extension: one bell in both hands, upper arms by the ears
+  dbtricep: {
+    view: view(100, 180),
+    db: "one",
+    keys: [
+      k([98, 73.2], 180, { armN: fk(168, 10), armF: fk(166, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180, { armN: fk(160, 128), armF: fk(158, 130), legN: flat(100), legF: flat(97) }, { n: 4 }),
+      k([98, 73.2], 180, { armN: fk(160, 128), armF: fk(158, 130), legN: flat(100), legF: flat(97) }, { n: 4 })
+    ],
+    dur: [1300, 200, 850],
+    still: 1
+  },
+  // reverse lunge: back foot reaches back to the ball of the foot, body drops straight down
+  dbrevlunge: {
+    view: view(92, 180),
+    db: "pair",
+    headLag: 0.015,
+    keys: [
+      k([98, 72.6], 180, { armN: fk(2, 8), armF: fk(0, 8), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([94, 74.6], 179, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(100), legF: { t: [84, 116], e: 70 } }, { n: 0 }),
+      k([82, 97.5], 178, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(102), legF: toes(70, 115.2, 32) }, { n: 0 }),
+      k([82, 97.5], 178, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(102), legF: toes(70, 115.2, 32) }, { n: 0 }),
+      k([94, 74.6], 179, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(100), legF: { t: [84, 116], e: 70 } }, { n: 0 })
+    ],
+    dur: [500, 700, 200, 600, 500],
+    still: 2
+  },
+  // renegade row: high plank on the bells, alternate rows, hips stay square
+  dbrenegade: {
+    view: view(91.4),
+    db: "pair",
+    keys: [
+      k([92, 100.4], 108, { armN: palm(115), armF: palm(112), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+      k([92, 100], 108, { armN: fk(-40, 100), armF: palm(112), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+      k([92, 100.4], 108, { armN: palm(115), armF: palm(112), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+      k([92, 100], 108, { armN: palm(115), armF: fk(-40, 100), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 })
+    ],
+    dur: [700, 900, 700, 900],
+    still: 1
+  },
+  // farmer's carry in place: tall, small steps, arms long and still
+  dbfarmer: {
+    view: view(102, 170),
+    db: "pair",
+    smooth: true,
+    keys: [
+      k([98, 72.9], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98.4, 71.9], 180, { armN: fk(3, 6), armF: fk(-1, 6), legN: fk(34, 50), legF: flat(97) }, { n: 0 }),
+      k([98, 72.9], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([97.6, 71.9], 180, { armN: fk(1, 6), armF: fk(1, 6), legN: flat(100), legF: fk(34, 50) }, { n: 0 })
+    ],
+    dur: 420,
+    still: 1
+  },
+  // calf raise: rise onto the balls of the feet, pause, slow lower
+  dbcalf: {
+    view: view(100, 170),
+    db: "pair",
+    keys: [
+      k([98, 72.6], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98.6, 67.6], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: toes(100.6, ANK - 5, 58), legF: toes(97.6, ANK - 5, 58) }, { n: 0 }),
+      k([98.6, 67.6], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: toes(100.6, ANK - 5, 58), legF: toes(97.6, ANK - 5, 58) }, { n: 0 })
+    ],
+    dur: [700, 400, 1100],
+    still: 1
+  },
+  // dumbbell glute bridge: bell held on the hip bones
+  dbbridge: {
+    view: view(87),
+    db: "one",
+    keys: [
+      k([95, 121.4], 271.4, { armN: fk(40, 70), armF: fk(38, 72), legN: flat(118), legF: flat(115) }, { h: 272 }),
+      k([92.4, 109.6], 293.4, { armN: fk(40, 70), armF: fk(38, 72), legN: flat(118), legF: flat(115) }, { h: 270 }),
+      k([92.4, 109.6], 293.4, { armN: fk(40, 70), armF: fk(38, 72), legN: flat(118), legF: flat(115) }, { h: 270 })
+    ],
+    dur: [800, 450, 1e3],
+    still: 1
   }
 };
 for (const [k2, h] of Object.entries(DEMO_HAND)) DEMOS[k2].hand = h;
@@ -1531,9 +1724,224 @@ var EXERCISES = [
     quiet: true,
     steps: ["\u7AD9\u76F4\uFF0C\u96D9\u8173\u8207\u9AD6\u540C\u5BEC\uFF0C\u96D9\u624B\u63D2\u8170", "\u4E00\u624B\u5F80\u4E0A\u8209\u9AD8\uFF0C\u8D8A\u904E\u982D\u9802\u5F80\u53E6\u4E00\u5074\u5EF6\u4F38", "\u4E0A\u534A\u8EAB\u6162\u6162\u5074\u5F4E\uFF0C\u505C 2\uFF5E3 \u79D2\u611F\u53D7\u5074\u8170\u62C9\u4F38", "\u56DE\u5230\u4E2D\u9593\uFF0C\u63DB\u908A"],
     tip: "\u9069\u5408\u7576\u7DE9\u548C\u6536\u64CD\uFF1B\u5F4E\u7684\u6642\u5019\u8EAB\u9AD4\u4E0D\u8981\u5F80\u524D\u5012\uFF0C\u4FDD\u6301\u547C\u5438\u4E0D\u8981\u618B\u6C23\u3002"
+  },
+  // ---------------- 啞鈴 (dumbbells) ----------------
+  {
+    id: "dbgoblet",
+    name: "\u555E\u9234\u9AD8\u8173\u676F\u6DF1\u8E72",
+    en: "Goblet Squat",
+    group: "\u4E0B\u80A2",
+    muscles: ["\u80A1\u56DB\u982D\u808C", "\u81C0\u5927\u808C", "\u6838\u5FC3"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 12,
+    kcalPerMin: 8,
+    demo: "dbgoblet",
+    cat: "db",
+    steps: ["\u96D9\u624B\u6367\u4F4F\u4E00\u500B\u555E\u9234\u7684\u4E00\u7AEF\uFF0C\u8CBC\u5728\u80F8\u524D", "\u96D9\u8173\u7565\u5BEC\u65BC\u80A9\uFF0C\u8173\u5C16\u5FAE\u671D\u5916", "\u633A\u80F8\uFF0C\u81C0\u90E8\u5F80\u5F8C\u5F80\u4E0B\u5750\u5230\u5927\u817F\u7D04\u8207\u5730\u9762\u5E73\u884C", "\u8173\u8DDF\u8E29\u7A69\u767C\u529B\u7AD9\u8D77\uFF0C\u555E\u9234\u59CB\u7D42\u8CBC\u8FD1\u80F8\u53E3"],
+    tip: "\u624B\u8098\u5F80\u4E0B\u6307\u3001\u5728\u819D\u84CB\u5167\u5074\uFF1B\u80CC\u4E0D\u8981\u62F1\uFF0C\u819D\u84CB\u8DDF\u8457\u8173\u5C16\u65B9\u5411\u3002"
+  },
+  {
+    id: "dbrdl",
+    name: "\u555E\u9234\u7F85\u99AC\u5C3C\u4E9E\u786C\u8209",
+    en: "Romanian Deadlift",
+    group: "\u4E0B\u80A2",
+    muscles: ["\u817F\u5F8C\u808C", "\u81C0\u5927\u808C", "\u4E0B\u80CC"],
+    difficulty: 2,
+    type: "reps",
+    defaultReps: 10,
+    kcalPerMin: 7,
+    demo: "dbrdl",
+    cat: "db",
+    steps: ["\u96D9\u624B\u5404\u63E1\u4E00\u500B\u555E\u9234\u5782\u5728\u5927\u817F\u524D\uFF0C\u819D\u84CB\u5FAE\u5F4E", "\u81C0\u90E8\u5F80\u5F8C\u63A8\u3001\u4E0A\u8EAB\u524D\u50BE\uFF0C\u555E\u9234\u6CBF\u8457\u5927\u817F\u5F80\u4E0B\u6ED1", "\u964D\u5230\u5C0F\u817F\u4E2D\u6BB5\u3001\u611F\u89BA\u5927\u817F\u5F8C\u5074\u62C9\u7DCA", "\u81C0\u90E8\u5F80\u524D\u63A8\u56DE\u7AD9\u76F4\uFF0C\u9802\u7AEF\u593E\u81C0"],
+    tip: "\u80CC\u90E8\u5168\u7A0B\u6253\u76F4\u3001\u80A9\u8180\u5F80\u5F8C\u6536\uFF1B\u9019\u662F\u300C\u63A8\u81C0\u300D\u4E0D\u662F\u300C\u8E72\u300D\uFF0C\u819D\u84CB\u89D2\u5EA6\u5E7E\u4E4E\u4E0D\u8B8A\u3002"
+  },
+  {
+    id: "dbrow",
+    name: "\u555E\u9234\u4FEF\u8EAB\u5212\u8239",
+    en: "Bent-over Row",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u80CC\u95CA\u808C", "\u5F8C\u4E09\u89D2\u808C", "\u4E8C\u982D\u808C"],
+    difficulty: 2,
+    type: "reps",
+    defaultReps: 10,
+    kcalPerMin: 6,
+    demo: "dbrow",
+    cat: "db",
+    steps: ["\u96D9\u624B\u5404\u63E1\u555E\u9234\uFF0C\u819D\u84CB\u5FAE\u5F4E\u3001\u4E0A\u8EAB\u524D\u50BE\u7D04 45 \u5EA6", "\u624B\u81C2\u81EA\u7136\u5782\u4E0B\uFF0C\u80CC\u6253\u76F4", "\u624B\u8098\u5F80\u5F8C\u4E0A\u65B9\u62C9\uFF0C\u628A\u555E\u9234\u62C9\u5230\u8170\u5074", "\u505C\u4E00\u4E0B\u593E\u7DCA\u80CC\u90E8\uFF0C\u518D\u6162\u6162\u653E\u4E0B"],
+    tip: "\u7528\u624B\u8098\u5E36\u52D5\u800C\u4E0D\u662F\u7528\u624B\u8155\u7529\uFF1B\u62C9\u7684\u6642\u5019\u80A9\u8180\u4E0D\u8981\u8073\u5230\u8033\u6735\u3002"
+  },
+  {
+    id: "dbfloorpress",
+    name: "\u555E\u9234\u5730\u677F\u81E5\u63A8",
+    en: "Floor Press",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u80F8\u5927\u808C", "\u4E09\u982D\u808C", "\u524D\u4E09\u89D2\u808C"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 12,
+    kcalPerMin: 6,
+    demo: "dbfloorpress",
+    cat: "db",
+    steps: ["\u4EF0\u8EBA\u5C48\u819D\uFF0C\u96D9\u624B\u5404\u63E1\u555E\u9234\uFF0C\u4E0A\u81C2\u8CBC\u5730\u3001\u524D\u81C2\u5782\u76F4", "\u5410\u6C23\uFF0C\u628A\u555E\u9234\u5F80\u5929\u82B1\u677F\u63A8\u76F4", "\u5728\u9802\u7AEF\u7A0D\u505C\uFF0C\u555E\u9234\u4E0D\u8981\u4E92\u649E", "\u5438\u6C23\uFF0C\u6162\u6162\u653E\u4E0B\u76F4\u5230\u4E0A\u81C2\u8F15\u89F8\u5730\u9762"],
+    tip: "\u6C92\u6709\u81E5\u63A8\u6905\u7684\u597D\u9078\u64C7\uFF1B\u624B\u8098\u8207\u8EAB\u9AD4\u7D04\u5448 45 \u5EA6\uFF0C\u4E0D\u8981\u5B8C\u5168\u6253\u958B\u6210 T \u5B57\u3002"
+  },
+  {
+    id: "dbpress",
+    name: "\u555E\u9234\u7AD9\u59FF\u80A9\u63A8",
+    en: "Shoulder Press",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u4E09\u89D2\u808C", "\u4E09\u982D\u808C", "\u6838\u5FC3"],
+    difficulty: 2,
+    type: "reps",
+    defaultReps: 10,
+    kcalPerMin: 6,
+    demo: "dbpress",
+    cat: "db",
+    steps: ["\u7AD9\u76F4\uFF0C\u96D9\u624B\u63E1\u555E\u9234\u505C\u5728\u80A9\u8180\u9AD8\u5EA6\uFF0C\u638C\u5FC3\u76F8\u5C0D", "\u6536\u7DCA\u8179\u90E8\u8207\u81C0\u90E8", "\u5410\u6C23\uFF0C\u628A\u555E\u9234\u5F80\u4E0A\u63A8\u5230\u624B\u81C2\u63A5\u8FD1\u4F38\u76F4", "\u6162\u6162\u653E\u56DE\u80A9\u8180\u9AD8\u5EA6"],
+    tip: "\u63A8\u7684\u6642\u5019\u4E0D\u8981\u5F8C\u4EF0\u584C\u8170\uFF1B\u808B\u9AA8\u5F80\u4E0B\u6536\uFF0C\u982D\u5728\u96D9\u81C2\u4E4B\u9593\u3002"
+  },
+  {
+    id: "dblateral",
+    name: "\u555E\u9234\u5074\u5E73\u8209",
+    en: "Lateral Raise",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u4E09\u89D2\u808C", "\u659C\u65B9\u808C"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 12,
+    kcalPerMin: 5,
+    demo: "dblateral",
+    cat: "db",
+    steps: ["\u7AD9\u76F4\uFF0C\u96D9\u624B\u5404\u63E1\u8F15\u555E\u9234\u5782\u5728\u8EAB\u5074\uFF0C\u624B\u8098\u5FAE\u5F4E", "\u624B\u81C2\u5F80\u5169\u5074\u8209\u8D77\uFF0C\u5E36\u52D5\u7684\u662F\u624B\u8098", "\u8209\u5230\u7D04\u8207\u80A9\u540C\u9AD8\u3001\u8EAB\u9AD4\u5448 T \u5B57", "\u6162\u6162\u653E\u4E0B\uFF0C\u4E0D\u8981\u7529"],
+    tip: "\u91CD\u91CF\u9078\u8F15\u4E00\u9EDE\uFF1B\u80A9\u8180\u4E0D\u8981\u8073\u8D77\uFF0C\u8209\u5230\u80A9\u9AD8\u5C31\u597D\u3002"
+  },
+  {
+    id: "dbcurl",
+    name: "\u555E\u9234\u4E8C\u982D\u5F4E\u8209",
+    en: "Biceps Curl",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u4E8C\u982D\u808C", "\u524D\u81C2"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 12,
+    kcalPerMin: 4,
+    demo: "dbcurl",
+    cat: "db",
+    steps: ["\u7AD9\u76F4\uFF0C\u96D9\u624B\u63E1\u555E\u9234\u5782\u5728\u8EAB\u5074", "\u4E0A\u81C2\u8CBC\u4F4F\u8EAB\u9AD4\u4E0D\u52D5", "\u5F4E\u66F2\u624B\u8098\u628A\u555E\u9234\u8209\u5230\u80A9\u524D", "\u505C\u4E00\u4E0B\uFF0C\u6162\u6162\u653E\u4E0B\u5230\u624B\u81C2\u4F38\u76F4"],
+    tip: "\u8EAB\u9AD4\u4E0D\u8981\u524D\u5F8C\u6643\u52D5\u501F\u529B\uFF1B\u653E\u4E0B\u6642\u63A7\u5236\u901F\u5EA6\u6548\u679C\u66F4\u597D\u3002"
+  },
+  {
+    id: "dbhammer",
+    name: "\u555E\u9234\u9318\u5F0F\u5F4E\u8209",
+    en: "Hammer Curl",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u4E8C\u982D\u808C", "\u524D\u81C2"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 10,
+    kcalPerMin: 4,
+    demo: "dbhammer",
+    cat: "db",
+    steps: ["\u7AD9\u76F4\uFF0C\u96D9\u624B\u63E1\u555E\u9234\u3001\u638C\u5FC3\u671D\u5167\u50CF\u63E1\u9435\u939A", "\u4E0A\u81C2\u8CBC\u8EAB", "\u5DE6\u53F3\u4EA4\u66FF\u5F4E\u66F2\u624B\u8098\u628A\u555E\u9234\u8209\u5230\u80A9\u524D", "\u6162\u6162\u653E\u4E0B\u518D\u63DB\u624B"],
+    tip: "\u6B21\u6578\u4EE5\u55AE\u624B\u8A08\uFF1B\u638C\u5FC3\u5168\u7A0B\u671D\u5167\uFF0C\u624B\u8155\u4E0D\u8981\u5F4E\u3002"
+  },
+  {
+    id: "dbtricep",
+    name: "\u555E\u9234\u904E\u982D\u4E09\u982D\u4F38\u5C55",
+    en: "Overhead Triceps Extension",
+    group: "\u4E0A\u80A2",
+    muscles: ["\u4E09\u982D\u808C"],
+    difficulty: 2,
+    type: "reps",
+    defaultReps: 12,
+    kcalPerMin: 4,
+    demo: "dbtricep",
+    cat: "db",
+    steps: ["\u7AD9\u76F4\u6216\u5750\u8457\uFF0C\u96D9\u624B\u6367\u4F4F\u4E00\u500B\u555E\u9234\u8209\u904E\u982D\u9802", "\u4E0A\u81C2\u9760\u8FD1\u8033\u6735\u56FA\u5B9A\u4E0D\u52D5", "\u5F4E\u66F2\u624B\u8098\u8B93\u555E\u9234\u6162\u6162\u964D\u5230\u982D\u5F8C\u65B9", "\u4F38\u76F4\u624B\u8098\u628A\u555E\u9234\u63A8\u56DE\u982D\u9802"],
+    tip: "\u624B\u8098\u671D\u524D\u3001\u4E0D\u8981\u5F80\u5916\u958B\uFF1B\u8179\u90E8\u6536\u7DCA\u907F\u514D\u8170\u5F80\u5F8C\u51F9\u3002"
+  },
+  {
+    id: "dbrevlunge",
+    name: "\u555E\u9234\u5F8C\u8DE8\u5F13\u7BAD\u6B65",
+    en: "Reverse Lunge",
+    group: "\u4E0B\u80A2",
+    muscles: ["\u80A1\u56DB\u982D\u808C", "\u81C0\u5927\u808C", "\u817F\u5F8C\u808C"],
+    difficulty: 2,
+    type: "reps",
+    defaultReps: 10,
+    kcalPerMin: 7,
+    demo: "dbrevlunge",
+    cat: "db",
+    steps: ["\u96D9\u624B\u5404\u63E1\u555E\u9234\u5782\u5728\u8EAB\u5074\uFF0C\u7AD9\u76F4", "\u4E00\u8173\u5F80\u5F8C\u8DE8\u4E00\u5927\u6B65\uFF0C\u8173\u5C16\u8457\u5730", "\u8EAB\u9AD4\u5782\u76F4\u5F80\u4E0B\uFF0C\u524D\u5F8C\u819D\u84CB\u7D04 90 \u5EA6", "\u524D\u8173\u8E29\u7A69\u767C\u529B\u7AD9\u56DE\u539F\u4F4D\uFF0C\u5DE6\u53F3\u4EA4\u66FF"],
+    tip: "\u6BD4\u524D\u8DE8\u5F13\u7BAD\u6B65\u66F4\u8B77\u819D\uFF1B\u91CD\u5FC3\u653E\u5728\u524D\u8173\uFF0C\u4E0A\u8EAB\u4FDD\u6301\u76F4\u7ACB\u3002"
+  },
+  {
+    id: "dbrenegade",
+    name: "\u555E\u9234\u53DB\u9006\u8005\u5212\u8239",
+    en: "Renegade Row",
+    group: "\u5168\u8EAB",
+    muscles: ["\u80CC\u95CA\u808C", "\u6838\u5FC3", "\u80A9\u90E8\u7A69\u5B9A\u808C\u7FA4"],
+    difficulty: 3,
+    type: "reps",
+    defaultReps: 8,
+    kcalPerMin: 8,
+    demo: "dbrenegade",
+    cat: "db",
+    steps: ["\u96D9\u624B\u63E1\u555E\u9234\u6490\u5730\u6210\u9AD8\u68D2\u5F0F\uFF0C\u96D9\u8173\u6253\u958B\u6BD4\u80A9\u5BEC", "\u8EAB\u9AD4\u5448\u4E00\u76F4\u7DDA\uFF0C\u6536\u7DCA\u6838\u5FC3", "\u4E00\u624B\u628A\u555E\u9234\u5F80\u8170\u5074\u62C9\u8D77\uFF0C\u53E6\u4E00\u624B\u6490\u7A69", "\u653E\u56DE\u5730\u9762\u518D\u63DB\u624B\uFF0C\u81C0\u90E8\u4E0D\u8981\u5DE6\u53F3\u626D"],
+    tip: "\u6B21\u6578\u4EE5\u55AE\u624B\u8A08\uFF1B\u7528\u516D\u89D2\u6216\u5E73\u5E95\u555E\u9234\u6BD4\u8F03\u7A69\uFF0C\u8173\u6253\u958B\u8D8A\u5BEC\u8D8A\u5BB9\u6613\u3002"
+  },
+  {
+    id: "dbfarmer",
+    name: "\u555E\u9234\u8FB2\u592B\u8D70\u8DEF",
+    en: "Farmer's Carry",
+    group: "\u5168\u8EAB",
+    muscles: ["\u524D\u81C2", "\u659C\u65B9\u808C", "\u6838\u5FC3"],
+    difficulty: 1,
+    type: "time",
+    defaultSeconds: 40,
+    kcalPerMin: 6,
+    demo: "dbfarmer",
+    cat: "db",
+    quiet: true,
+    steps: ["\u96D9\u624B\u5404\u63D0\u4E00\u500B\u8F03\u91CD\u7684\u555E\u9234\u5782\u5728\u8EAB\u5074", "\u633A\u80F8\u3001\u80A9\u8180\u5F80\u5F8C\u4E0B\u6C89", "\u5C0F\u6B65\u539F\u5730\u8E0F\u6B65\u6216\u4F86\u56DE\u8D70", "\u4FDD\u6301\u8EAB\u9AD4\u4E0D\u6B6A\u4E0D\u6643\uFF0C\u7DAD\u6301\u6307\u5B9A\u6642\u9593"],
+    tip: "\u7DF4\u63E1\u529B\u8207\u6838\u5FC3\u7684\u597D\u52D5\u4F5C\uFF1B\u7A7A\u9593\u5C0F\u5C31\u539F\u5730\u8E0F\u6B65\uFF0C\u63E1\u4E0D\u4F4F\u5C31\u4F11\u606F\u3002"
+  },
+  {
+    id: "dbcalf",
+    name: "\u555E\u9234\u63D0\u8E35",
+    en: "Calf Raise",
+    group: "\u4E0B\u80A2",
+    muscles: ["\u5C0F\u817F"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 15,
+    kcalPerMin: 4,
+    demo: "dbcalf",
+    cat: "db",
+    quiet: true,
+    steps: ["\u96D9\u624B\u5404\u63E1\u555E\u9234\u5782\u5728\u8EAB\u5074\uFF0C\u96D9\u8173\u8207\u9AD6\u540C\u5BEC", "\u8173\u8DDF\u6162\u6162\u5F80\u4E0A\u8E2E\u5230\u6700\u9AD8", "\u5728\u9802\u7AEF\u505C 1 \u79D2", "\u6162\u6162\u653E\u4E0B\u8173\u8DDF"],
+    tip: "\u8E2E\u8D77\u6642\u91CD\u5FC3\u5728\u5927\u62C7\u8DBE\u7403\uFF1B\u53EF\u4EE5\u7AD9\u5728\u53F0\u968E\u908A\u7DE3\u589E\u52A0\u5E45\u5EA6\u3002"
+  },
+  {
+    id: "dbbridge",
+    name: "\u555E\u9234\u81C0\u6A4B",
+    en: "Dumbbell Glute Bridge",
+    group: "\u4E0B\u80A2",
+    muscles: ["\u81C0\u5927\u808C", "\u817F\u5F8C\u808C", "\u6838\u5FC3"],
+    difficulty: 1,
+    type: "reps",
+    defaultReps: 12,
+    kcalPerMin: 5,
+    demo: "dbbridge",
+    cat: "db",
+    quiet: true,
+    steps: ["\u4EF0\u8EBA\u5C48\u819D\uFF0C\u96D9\u8173\u8E29\u5730\u8207\u9AD6\u540C\u5BEC", "\u96D9\u624B\u628A\u4E00\u500B\u555E\u9234\u58D3\u5728\u9AD6\u9AA8\u4E0A", "\u8173\u8DDF\u767C\u529B\u628A\u81C0\u90E8\u63A8\u9AD8\uFF0C\u8EAB\u9AD4\u5F9E\u80A9\u5230\u819D\u5448\u76F4\u7DDA", "\u9802\u7AEF\u593E\u81C0\u505C 1 \u79D2\uFF0C\u6162\u6162\u653E\u4E0B"],
+    tip: "\u7528\u81C0\u90E8\u800C\u4E0D\u662F\u8170\u51FA\u529B\uFF1B\u9802\u7AEF\u4E0D\u8981\u904E\u5EA6\u633A\u8170\u3002"
   }
 ];
 var EX_MAP = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));
+var DB_COUNT = EXERCISES.filter((e) => e.cat === "db").length;
 var AERO_COUNT = EXERCISES.filter((e) => e.cat === "aero").length;
 
 // src/components/figure/anatomy.ts
@@ -1593,7 +2001,22 @@ var TARGETS = {
   hula: { p: ["obliques"], s: ["abs"] },
   sidelunge: { p: ["quads", "glutes"], s: ["adductors"] },
   skihop: { p: ["calves", "quads"], s: ["adductors", "abs"] },
-  sidebend: { p: ["obliques"], s: [] }
+  sidebend: { p: ["obliques"], s: [] },
+  // 啞鈴
+  dbgoblet: { p: ["quads", "glutes"], s: ["abs", "adductors"] },
+  dbrdl: { p: ["hamstrings", "glutes"], s: ["lowerBack", "forearm"] },
+  dbrow: { p: ["lats", "rearDelt"], s: ["biceps", "traps"] },
+  dbfloorpress: { p: ["chest", "triceps"], s: ["frontDelt"] },
+  dbpress: { p: ["delts", "triceps"], s: ["traps", "abs"] },
+  dblateral: { p: ["delts"], s: ["traps"] },
+  dbcurl: { p: ["biceps"], s: ["forearm"] },
+  dbhammer: { p: ["biceps", "forearm"], s: [] },
+  dbtricep: { p: ["triceps"], s: ["abs"] },
+  dbrevlunge: { p: ["quads", "glutes"], s: ["hamstrings", "forearm"] },
+  dbrenegade: { p: ["lats", "abs"], s: ["obliques", "frontDelt", "triceps"] },
+  dbfarmer: { p: ["forearm", "traps"], s: ["abs", "obliques"] },
+  dbcalf: { p: ["calves"], s: ["forearm"] },
+  dbbridge: { p: ["glutes"], s: ["hamstrings", "abs"] }
 };
 var targetLabels = (t) => ({
   p: t.p.map((m) => MUSCLE_LABEL[m]),
@@ -1605,7 +2028,7 @@ var MOTIONS = Object.fromEntries(EXERCISES.map((ex) => {
   const d = DEMOS[ex.demo];
   const durations = d.keys.map((_, i) => Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur);
   const targets = targetLabels(TARGETS[ex.demo]);
-  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1e3 * 1.35), prop: d.prop, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip }];
+  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1e3 * 1.35), prop: d.prop, db: d.db, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip }];
 }));
 function createMotion(name) {
   const d = DEMOS[name];

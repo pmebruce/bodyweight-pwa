@@ -6,6 +6,8 @@ export type DemoKey =
   // 瘦身操 (aerobics)
   | 'march' | 'buttkick' | 'kickclap' | 'punch' | 'uppercut' | 'armcircle' | 'stepjack'
   | 'steptouch' | 'sideleg' | 'sidecrunch' | 'hula' | 'sidelunge' | 'skihop' | 'sidebend'
+  // 啞鈴 (dumbbells)
+  | 'dbgoblet' | 'dbrdl' | 'dbrow' | 'dbfloorpress' | 'dbpress' | 'dblateral' | 'dbcurl' | 'dbhammer' | 'dbtricep' | 'dbrevlunge' | 'dbrenegade' | 'dbfarmer' | 'dbcalf' | 'dbbridge'
 
 export interface Exercise {
   id: string
@@ -22,7 +24,7 @@ export interface Exercise {
   tip: string
   demo: DemoKey
   /** 'aero' = 瘦身操 (low-impact cardio / aerobic dance moves) */
-  cat?: 'aero'
+  cat?: 'aero' | 'db'
   /** no jumping, apartment-friendly (安靜) */
   quiet?: boolean
 }
@@ -41,7 +43,7 @@ export interface Plan {
   description: string
   builtIn?: boolean
   /** 'aero' = 瘦身操 plan (built-in follow-along routines) */
-  kind?: 'aero'
+  kind?: 'aero' | 'db'
   hue: number
   items: PlanItem[]
   updatedAt?: number
@@ -78,5 +80,15 @@ export interface AppData {
   version: 1
   customPlans: Plan[]
   history: WorkoutLog[]
+  /** dumbbell weights used, newest first per exercise */
+  weights?: Record<string, WeightEntry[]>
   settings: Settings
+}
+
+/** one logged dumbbell exercise: kg per set (per hand) and whether every target rep was completed */
+export interface WeightEntry {
+  at: number
+  kg: number[]
+  reps: number
+  done: boolean
 }

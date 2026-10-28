@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
-import { AERO_COUNT, EXERCISES, FILTERS, matchFilter, type Filter } from '../data/exercises'
+import { AERO_COUNT, DB_COUNT, EXERCISES, FILTERS, matchFilter, type Filter } from '../data/exercises'
 import ExerciseFigure from '../components/ExerciseFigure'
 import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
@@ -26,7 +26,7 @@ export default function Library() {
 
   return (
     <div className="page">
-      <PageHeader title="動作庫" subtitle={`${EXERCISES.length} 個徒手動作（含 ${AERO_COUNT} 個瘦身操），不需器材`} />
+      <PageHeader title="動作庫" subtitle={`${EXERCISES.length - DB_COUNT} 個徒手動作（含 ${AERO_COUNT} 個瘦身操）＋ ${DB_COUNT} 個啞鈴動作`} />
       <div className="search">
         <Icon name="search" size={18} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜尋動作或部位，例如：胸、深蹲" enterKeyHint="search" />
@@ -67,7 +67,7 @@ export default function Library() {
               <div className="ex-card-body">
                 <h3>{e.name}</h3>
                 <div className="ex-card-meta">
-                  {e.cat === 'aero' ? <span className="tag aero">瘦身操</span> : <span className="tag">{e.group}</span>}
+                  {e.cat === 'aero' ? <span className="tag aero">瘦身操</span> : e.cat === 'db' ? <span className="tag db">啞鈴</span> : <span className="tag">{e.group}</span>}
                   <Difficulty level={e.difficulty} />
                 </div>
                 <span className="ex-card-target">{e.type === 'reps' ? `${e.defaultReps} 下` : `${e.defaultSeconds} 秒`}</span>

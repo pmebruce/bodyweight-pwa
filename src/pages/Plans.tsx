@@ -6,7 +6,7 @@ import { Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
 
-const TABS = ['全部', '瘦身操', '健身訓練'] as const
+const TABS = ['全部', '瘦身操', '健身訓練', '啞鈴'] as const
 type Tab = (typeof TABS)[number]
 let savedTab: Tab = '全部'
 
@@ -15,13 +15,15 @@ export default function Plans() {
   const [tab, setTab] = useState<Tab>(savedTab)
   savedTab = tab
   const aero = plans.filter((p) => p.builtIn && p.kind === 'aero')
-  const fit = plans.filter((p) => p.builtIn && p.kind !== 'aero')
+  const fit = plans.filter((p) => p.builtIn && !p.kind)
+  const db = plans.filter((p) => p.builtIn && p.kind === 'db')
   const mine = plans.filter((p) => !p.builtIn)
-  const showMine = tab !== '瘦身操'
+  const showMine = tab === '全部' || tab === '健身訓練'
   // with no custom plans yet, lead with the built-in plans and put the "create" prompt last
   const mineFirst = mine.length > 0
-  const showAero = tab !== '健身訓練'
-  const showFit = tab !== '瘦身操'
+  const showAero = tab === '全部' || tab === '瘦身操'
+  const showFit = tab === '全部' || tab === '健身訓練'
+  const showDb = tab === '全部' || tab === '啞鈴'
   const mineSection = (
     <>
       <h2 className="section-title">我的計畫</h2>
@@ -86,6 +88,20 @@ export default function Plans() {
           <h2 className="section-title">健身訓練</h2>
           <div className="plan-list">
             {fit.map((p, i) => (
+              <PlanCard key={p.id} plan={p} index={i} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {showDb && (
+        <>
+          <div className="section-title-row">
+            <h2 className="section-title">啞鈴訓練</h2>
+            <span className="section-note">記錄重量・自動建議加重</span>
+          </div>
+          <div className="plan-list">
+            {db.map((p, i) => (
               <PlanCard key={p.id} plan={p} index={i} />
             ))}
           </div>

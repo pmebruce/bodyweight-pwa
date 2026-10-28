@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti'
 import { uid, useStore } from '../lib/store'
 import { resolvePlan, itemTarget } from '../lib/plan'
 import { EX_MAP } from '../data/exercises'
-import type { Exercise, Plan, WorkoutLog } from '../types'
+import type { Exercise, Plan, WeightEntry, WorkoutLog } from '../types'
 import ExerciseFigure from '../components/ExerciseFigure'
 import ExerciseDemo from '../components/ExerciseDemo'
 import Ring from '../components/Ring'
@@ -15,6 +15,7 @@ import { goBack, navigate } from '../lib/router'
 import { beep, chime, speak, stopSpeaking, unlockMedia, vibrate, WakeLockKeeper } from '../lib/cues'
 import { mmss } from '../lib/format'
 import { planEstimate } from '../lib/stats'
+import { fmtKg, suggestKg } from '../lib/weights'
 
 interface WorkStep {
   kind: 'work'
@@ -56,7 +57,11 @@ interface Result {
 }
 
 export default function Workout({ planId }: { planId: string }) {
-  const { plans, data, addLog } = useStore()
+  const { plans, data, addLog, logWeights } = useStore()
+  /** dumbbell kg chosen per exercise (the stepper value) and kg actually used per completed set */
+  const [kgSel, setKgSel] = useState<Record<string, number>>({})
+  const kgUsed = useRef(new Map<string, { kg: number[]; reps: number; sets: number }>())
+  const kgFor = (id: string) => kgSel[id] ?? suggestKg(data.weights, id).kg
   const settings = data.settings
   const plan = useMemo(() => resolvePlan(planId, plans, settings), [planId]) // eslint-disable-line react-hooks/exhaustive-deps
   const { steps, totalWork } = useMemo(() => (plan ? buildSteps(plan, settings.prepSeconds) : { steps: [], totalWork: 0 }), [plan]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -154,6 +159,15 @@ export default function Workout({ planId }: { planId: string }) {
         completed,
       }
       if (res.length > 0) addLog(entry)
+      if (kgUsed.current.size) {
+        const at = Date.now(), out: Record<string, WeightEntry> = {}
+        kgUsed.current.forEach((v, id) => {
+          const kg = v.kg.filter((x) => x !== undefined)
+          if (kg.length) out[id] = { at, kg, reps: v.reps, done: kg.length >= v.sets }
+        })
+        logWeights(out)
+        kgUsed.current.clear()
+      }
       setLog(entry)
       setPaused(false)
       setPhase('done')
@@ -167,7 +181,7 @@ export default function Workout({ planId }: { planId: string }) {
         say('訓練結束，辛苦了')
       }
     },
-    [paused, plan, addLog], // eslint-disable-line react-hooks/exhaustive-deps
+    [paused, plan, addLog, logWeights], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const advance = useCallback(() => {
@@ -180,9 +194,14 @@ export default function Workout({ planId }: { planId: string }) {
     if (s?.kind === 'work') {
       const secs = s.seconds ?? (Date.now() - stepStart.current) / 1000
       results.current.set(idx, { exerciseId: s.ex.id, seconds: Math.min(secs, s.seconds ?? 600), reps: s.reps ?? 0 })
+      if (s.ex.cat === 'db') {
+        const u = kgUsed.current.get(s.ex.id) ?? { kg: [], reps: s.reps ?? s.seconds ?? 0, sets: s.sets }
+        u.kg[s.set - 1] = kgFor(s.ex.id)
+        kgUsed.current.set(s.ex.id, u)
+      }
     }
     advance()
-  }, [steps, idx, advance])
+  }, [steps, idx, advance, kgSel, data.weights]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // main clock
   useEffect(() => {
@@ -332,7 +351,7 @@ export default function Workout({ planId }: { planId: string }) {
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
             >
               {step.kind === 'work' ? (
-                <WorkView step={step} leftMs={leftMs} frac={fracInStep} onComplete={completeWork} paused={paused} />
+                <WorkView step={step} leftMs={leftMs} frac={fracInStep} onComplete={completeWork} paused={paused} kg={step.ex.cat === 'db' ? { value: kgFor(step.ex.id), hint: suggestKg(data.weights, step.ex.id), set: (v) => setKgSel((m) => ({ ...m, [step.ex.id]: v })) } : undefined} />
               ) : (
                 <RestView kind={step.kind} next={step.next} leftMs={leftMs} frac={fracInStep} onAdd={() => addRest(10)} onSkip={skip} />
               )}
@@ -469,7 +488,31 @@ function BigNumber({ value, urgent }: { value: number | string; urgent?: boolean
   )
 }
 
-function WorkView({ step, leftMs, frac, onComplete, paused }: { step: WorkStep; leftMs: number; frac: number; onComplete: () => void; paused: boolean }) {
+interface KgCtl {
+  value: number
+  hint: ReturnType<typeof suggestKg>
+  set: (kg: number) => void
+}
+
+/** dumbbell weight stepper (kg per dumbbell) with last-time / suggestion line */
+function KgStepper({ kg }: { kg: KgCtl }) {
+  const { value, hint, set } = kg
+  const step = (d: number) => set(Math.max(0, Math.min(60, Math.round((value + d) * 2) / 2)))
+  return (
+    <div className="wk-kg">
+      <div className="wk-kg-row">
+        <motion.button whileTap={{ scale: 0.85 }} className="wk-kg-btn" onClick={() => step(value > 10 ? -2 : -1)} aria-label="減少重量">−</motion.button>
+        <span className="wk-kg-val">{fmtKg(value)}</span>
+        <motion.button whileTap={{ scale: 0.85 }} className="wk-kg-btn" onClick={() => step(value >= 10 ? 2 : 1)} aria-label="增加重量">＋</motion.button>
+      </div>
+      <p className="wk-kg-hint">
+        {hint.last ? `上次 ${fmtKg(Math.max(...hint.last.kg))}${hint.last.done ? ' ✓ 全部完成' : '（未全部完成）'}・建議 ${fmtKg(hint.kg)}${hint.up ? ' ↑' : ''}` : `第一次做：建議從 ${fmtKg(hint.kg)} 開始（每顆）`}
+      </p>
+    </div>
+  )
+}
+
+function WorkView({ step, leftMs, frac, onComplete, paused, kg }: { step: WorkStep; leftMs: number; frac: number; onComplete: () => void; paused: boolean; kg?: KgCtl }) {
   const sec = Math.ceil(leftMs / 1000)
   const [tapped, setTapped] = useState(false)
   const size = useRingSize(210)
@@ -482,6 +525,7 @@ function WorkView({ step, leftMs, frac, onComplete, paused }: { step: WorkStep; 
       <div className="wk-fig">
         <ExerciseDemo key={step.ex.demo} demo={step.ex.demo} playing={!paused} compact />
       </div>
+      {kg && <KgStepper kg={kg} />}
       {step.seconds ? (
         <Ring progress={1 - frac} size={size} id="ring-work">
           <BigNumber value={sec} urgent={sec <= 3} />

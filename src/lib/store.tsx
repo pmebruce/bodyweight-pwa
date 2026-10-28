@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { AppData, Plan, Settings, WorkoutLog } from '../types'
+import type { AppData, Plan, Settings, WeightEntry, WorkoutLog } from '../types'
 import { BUILTIN_PLANS } from '../data/plans'
 import { EX_MAP } from '../data/exercises'
 
@@ -32,6 +32,15 @@ export function sanitize(raw: unknown): AppData {
   if (Array.isArray(r.history)) {
     d.history = r.history.filter((h) => h && typeof h.id === 'string' && typeof h.startedAt === 'number')
   }
+  if (r.weights && typeof r.weights === 'object') {
+    const w: Record<string, WeightEntry[]> = {}
+    for (const [id, list] of Object.entries(r.weights)) {
+      if (!Array.isArray(list)) continue
+      const ok = list.filter((e) => e && typeof e.at === 'number' && Array.isArray(e.kg) && e.kg.length > 0 && e.kg.every((x) => typeof x === 'number' && x >= 0))
+      if (ok.length) w[id] = ok
+    }
+    d.weights = w
+  }
   if (r.settings && typeof r.settings === 'object') {
     // any previously stored settings = an existing user: never prompt them, keep their nickname as is
     const st = r.settings as Partial<Settings>
@@ -58,6 +67,8 @@ interface Store {
   deletePlan: (id: string) => void
   addLog: (l: WorkoutLog) => void
   deleteLog: (id: string) => void
+  /** save dumbbell weights from one workout (newest first, last 50 kept per exercise) */
+  logWeights: (entries: Record<string, WeightEntry>) => void
   updateSettings: (s: Partial<Settings>) => void
   replaceAll: (d: AppData) => void
   clearAll: () => void
@@ -94,13 +105,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deletePlan = useCallback((id: string) => setData((d) => ({ ...d, customPlans: d.customPlans.filter((p) => p.id !== id) })), [])
   const addLog = useCallback((l: WorkoutLog) => setData((d) => ({ ...d, history: [l, ...d.history] })), [])
   const deleteLog = useCallback((id: string) => setData((d) => ({ ...d, history: d.history.filter((h) => h.id !== id) })), [])
+  const logWeights = useCallback(
+    (entries: Record<string, WeightEntry>) =>
+      setData((d) => {
+        const w = { ...(d.weights ?? {}) }
+        for (const [id, e] of Object.entries(entries)) w[id] = [e, ...(w[id] ?? [])].slice(0, 50)
+        return { ...d, weights: w }
+      }),
+    [],
+  )
   const updateSettings = useCallback((s: Partial<Settings>) => setData((d) => ({ ...d, settings: { ...d.settings, ...s } })), [])
   const replaceAll = useCallback((nd: AppData) => setData(sanitize(nd)), [])
   const clearAll = useCallback(() => setData(emptyData()), [])
 
   const value = useMemo(
-    () => ({ data, plans, getPlan, savePlan, deletePlan, addLog, deleteLog, updateSettings, replaceAll, clearAll }),
-    [data, plans, getPlan, savePlan, deletePlan, addLog, deleteLog, updateSettings, replaceAll, clearAll],
+    () => ({ data, plans, getPlan, savePlan, deletePlan, addLog, deleteLog, logWeights, updateSettings, replaceAll, clearAll }),
+    [data, plans, getPlan, savePlan, deletePlan, addLog, deleteLog, logWeights, updateSettings, replaceAll, clearAll],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

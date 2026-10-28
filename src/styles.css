@@ -499,3 +499,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 .demo-targets{margin:0 3px 8px;font-size:12px;line-height:1.55;color:#49584f}.demo-targets span{display:block}.demo-targets span:first-child{color:#a52d23}.demo-targets span:last-child{color:#86501f}
 .figure-thumbnail{display:block;height:100%;max-height:100%;object-fit:contain;aspect-ratio:216/220}.figure-thumbnail.muted-muscles{filter:saturate(.3)}.ex-card-fig .figure-thumbnail{height:100%;width:100%}.wk-next-fig .figure-thumbnail{height:64px}.demo-unavailable{min-height:200px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#40594b;background:#e9eee5;border-radius:18px;padding:24px;gap:6px;font-size:14px}.demo-unavailable p{margin:0}.demo-unavailable button{margin-top:12px;border:1px solid #b6c9b9;border-radius:12px;background:white;color:#294d3d;padding:11px 16px;font:inherit}
+
+/* dumbbell weight stepper (workout) */
+.wk-kg { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 2px 0 6px; }
+.wk-kg-row { display: flex; align-items: center; gap: 14px; }
+.wk-kg-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; font-size: 22px; font-weight: 700; color: inherit; background: rgba(127, 127, 127, 0.18); }
+.wk-kg-val { min-width: 92px; text-align: center; font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.wk-kg-hint { margin: 0; font-size: 12.5px; opacity: 0.75; text-align: center; }
+.tag.db { background: color-mix(in srgb, #3b82f6 14%, transparent); color: color-mix(in srgb, #3b82f6 80%, var(--text)); }
+.weight-card { margin: 4px 0 12px; }
+.weight-next { margin: 0 0 8px; font-size: 14px; }
+.weight-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.weight-list li { display: grid; grid-template-columns: 56px 1fr auto; gap: 8px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--text) 6%, transparent); }

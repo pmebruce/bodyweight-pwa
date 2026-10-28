@@ -74,6 +74,21 @@ export const TARGETS: Record<DemoKey, Targets> = {
   sidelunge: { p: ['quads', 'glutes'], s: ['adductors'] },
   skihop: { p: ['calves', 'quads'], s: ['adductors', 'abs'] },
   sidebend: { p: ['obliques'], s: [] },
+  // 啞鈴
+  dbgoblet: { p: ['quads', 'glutes'], s: ['abs', 'adductors'] },
+  dbrdl: { p: ['hamstrings', 'glutes'], s: ['lowerBack', 'forearm'] },
+  dbrow: { p: ['lats', 'rearDelt'], s: ['biceps', 'traps'] },
+  dbfloorpress: { p: ['chest', 'triceps'], s: ['frontDelt'] },
+  dbpress: { p: ['delts', 'triceps'], s: ['traps', 'abs'] },
+  dblateral: { p: ['delts'], s: ['traps'] },
+  dbcurl: { p: ['biceps'], s: ['forearm'] },
+  dbhammer: { p: ['biceps', 'forearm'], s: [] },
+  dbtricep: { p: ['triceps'], s: ['abs'] },
+  dbrevlunge: { p: ['quads', 'glutes'], s: ['hamstrings', 'forearm'] },
+  dbrenegade: { p: ['lats', 'abs'], s: ['obliques', 'frontDelt', 'triceps'] },
+  dbfarmer: { p: ['forearm', 'traps'], s: ['abs', 'obliques'] },
+  dbcalf: { p: ['calves'], s: ['forearm'] },
+  dbbridge: { p: ['glutes'], s: ['hamstrings', 'abs'] },
 }
 
 export const targetLabels = (t: Targets) => ({

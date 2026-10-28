@@ -156,6 +156,15 @@ export function createNaturalRig(model){
       orientSegment(h.side+'HandThumb1',h.side+'HandThumb2',finger.clone().add(V(0,0,-.45)),palm);orientSegment(h.side+'HandThumb2',h.side+'HandThumb3',finger.clone().add(V(0,0,-.15)),palm);
     }
   }
+  // Both hands on one dumbbell: goblet at the chest, triceps extension overhead, bridge on the hip bones.
+  function sharedGrip(){
+    const mid=exercise==='dbbridge'?world(bones.Hips).add(V(0,.15,0)).add(world(bones.Spine).sub(world(bones.Hips)).normalize().multiplyScalar(.02)):world(hands[0].end).add(world(hands[1].end)).multiplyScalar(.5);
+    for(const h of hands){
+      h.target.copy(mid).add(V(h.s*.055,0,0));solve(h,h.target,V(h.s,-.25,exercise==='dbtricep'?.35:-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+      const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0);
+      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm);
+    }
+  }
   // One guide per complete cycle avoids a roll flip near an aim-axis singularity.
   function handGuides(){
     if(handGuideCache.has(exercise))return handGuideCache.get(exercise);
@@ -174,6 +183,7 @@ export function createNaturalRig(model){
     if(['bicycle','sidecrunch'].includes(exercise)){handsBesideHead();return;}
     if(exercise==='kickclap'){kickClap(t);return;}
     if(exercise==='sidelunge'){chestHandsTogether(direction(f,f.axis));return;}
+    if(['dbgoblet','dbtricep','dbbridge'].includes(exercise)){sharedGrip();return;}
     for(const h of hands){
       const l=f['arm'+(h.side==='Left'?'N':'F')],fore=world(h.end).sub(world(h.lower)).normalize();resetDigits(h);
       const contact=l.hand==='flat'?T.MathUtils.smoothstep(.36-world(h.end).y,0,.20):0;

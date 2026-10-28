@@ -6,7 +6,7 @@ export const MOTIONS = Object.fromEntries(EXERCISES.map(ex => {
   const d = DEMOS[ex.demo]
   const durations = d.keys.map((_, i) => Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur)
   const targets = targetLabels(TARGETS[ex.demo])
-  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1000 * 1.35), prop: d.prop, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip }]
+  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1000 * 1.35), prop: d.prop, db: d.db, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip }]
 }))
 export function createMotion(name: string) {
   const d = DEMOS[name as keyof typeof DEMOS]

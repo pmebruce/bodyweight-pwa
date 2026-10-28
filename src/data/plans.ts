@@ -168,4 +168,42 @@ export const BUILTIN_PLANS: Plan[] = [
       { exerciseId: 'sidebend', sets: 1, seconds: 40, rest: 0 },
     ],
   },
+  {
+    id: 'db-full20', name: '全身啞鈴 20 分鐘', builtIn: true, kind: 'db', hue: 210,
+    description: '一對可調式啞鈴練遍全身：深蹲、硬舉、推、拉、核心，每組做完記下重量。',
+    items: [
+      { exerciseId: 'march', sets: 1, seconds: 45, rest: 15 },
+      { exerciseId: 'dbgoblet', sets: 3, reps: 12, rest: 60 },
+      { exerciseId: 'dbfloorpress', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbrdl', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbrow', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbpress', sets: 2, reps: 10, rest: 60 },
+      { exerciseId: 'dbfarmer', sets: 2, seconds: 40, rest: 45 },
+    ],
+  },
+  {
+    id: 'db-upper', name: '啞鈴上半身', builtIn: true, kind: 'db', hue: 228,
+    description: '胸、背、肩、手臂全面加強，推拉交替讓肌肉輪流休息。',
+    items: [
+      { exerciseId: 'dbfloorpress', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbrow', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbpress', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dblateral', sets: 3, reps: 12, rest: 45 },
+      { exerciseId: 'dbcurl', sets: 2, reps: 12, rest: 45 },
+      { exerciseId: 'dbtricep', sets: 2, reps: 12, rest: 45 },
+      { exerciseId: 'dbhammer', sets: 2, reps: 10, rest: 45 },
+    ],
+  },
+  {
+    id: 'db-lower', name: '啞鈴下半身', builtIn: true, kind: 'db', hue: 196,
+    description: '臀腿為主，搭配小腿與核心，全程不跳、適合在家練。',
+    items: [
+      { exerciseId: 'dbgoblet', sets: 3, reps: 12, rest: 60 },
+      { exerciseId: 'dbrdl', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbrevlunge', sets: 3, reps: 10, rest: 60 },
+      { exerciseId: 'dbbridge', sets: 3, reps: 12, rest: 45 },
+      { exerciseId: 'dbcalf', sets: 3, reps: 15, rest: 30 },
+      { exerciseId: 'dbrenegade', sets: 2, reps: 8, rest: 60 },
+    ],
+  },
 ]

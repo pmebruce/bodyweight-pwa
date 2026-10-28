@@ -6,12 +6,15 @@ import { Difficulty, Empty, PageHeader } from '../components/ui'
 import Icon from '../components/Icon'
 import { navigate } from '../lib/router'
 import { useState } from 'react'
+import { useStore } from '../lib/store'
+import { fmtKg, suggestKg } from '../lib/weights'
 
 /** demo playback speeds, cycled by the speed chip */
 const SPEEDS = [1, 2, 0.75, 0.5] as const
 
 export default function ExerciseDetail({ id }: { id: string }) {
   const ex = EX_MAP[id]
+  const { data } = useStore()
   const [si, setSi] = useState(0)
   const speed = SPEEDS[si] ?? 1
   if (!ex) return <div className="page"><PageHeader title="找不到動作" back="/library" /><Empty icon="🤔" title="這個動作不存在" /></div>
@@ -27,6 +30,7 @@ export default function ExerciseDetail({ id }: { id: string }) {
 
       <div className="detail-tags">
         {ex.cat === 'aero' && <span className="tag big aero">瘦身操</span>}
+        {ex.cat === 'db' && <span className="tag big db">啞鈴</span>}
         <span className="tag big">{ex.group}</span>
         {ex.cat === 'aero' && <span className="tag big">{ex.quiet ? '🤫 安靜不跳' : '有跳躍'}</span>}
         <span className="tag big">
@@ -35,6 +39,7 @@ export default function ExerciseDetail({ id }: { id: string }) {
         <span className="tag big">{ex.type === 'reps' ? `建議 ${ex.defaultReps} 下` : `建議 ${ex.defaultSeconds} 秒`}</span>
       </div>
       <MuscleLegend demo={ex.demo} />
+      {ex.cat === 'db' && <WeightHistory id={ex.id} weights={data.weights} />}
 
       <h2 className="section-title">動作要點</h2>
       <ol className="steps">
@@ -86,6 +91,29 @@ function MuscleLegend({ demo }: { demo: keyof typeof TARGETS }) {
             </span>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+/** dumbbell log: last sessions and the next suggested weight */
+function WeightHistory({ id, weights }: { id: string; weights: Parameters<typeof suggestKg>[0] }) {
+  const sug = suggestKg(weights, id)
+  const list = weights?.[id]?.slice(0, 5) ?? []
+  return (
+    <div className="weight-card">
+      <h2 className="section-title">重量紀錄</h2>
+      <p className="weight-next">下次建議 <b>{fmtKg(sug.kg)}</b>（每顆）{sug.up ? '：上次全部完成，加一點重量 ↑' : sug.last ? '：先把這個重量全部做完再加重' : '：第一次做，先用這個重量找手感'}</p>
+      {list.length > 0 && (
+        <ul className="weight-list">
+          {list.map((e) => (
+            <li key={e.at}>
+              <span>{new Date(e.at).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}</span>
+              <span>{e.kg.map((k) => fmtKg(k)).join(' / ')}</span>
+              <span>{e.done ? '✓ 完成' : '未完成'}</span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

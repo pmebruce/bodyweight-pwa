@@ -207,18 +207,105 @@ export const EXERCISES: Exercise[] = [
     steps: ['站直，雙腳與髖同寬，雙手插腰', '一手往上舉高，越過頭頂往另一側延伸', '上半身慢慢側彎，停 2～3 秒感受側腰拉伸', '回到中間，換邊'],
     tip: '適合當緩和收操；彎的時候身體不要往前倒，保持呼吸不要憋氣。',
   },
+  // ---------------- 啞鈴 (dumbbells) ----------------
+  {
+    id: 'dbgoblet', name: '啞鈴高腳杯深蹲', en: 'Goblet Squat', group: '下肢', muscles: ['股四頭肌', '臀大肌', '核心'],
+    difficulty: 1, type: 'reps', defaultReps: 12, kcalPerMin: 8, demo: 'dbgoblet', cat: 'db',
+    steps: ['雙手捧住一個啞鈴的一端，貼在胸前', '雙腳略寬於肩，腳尖微朝外', '挺胸，臀部往後往下坐到大腿約與地面平行', '腳跟踩穩發力站起，啞鈴始終貼近胸口'],
+    tip: '手肘往下指、在膝蓋內側；背不要拱，膝蓋跟著腳尖方向。',
+  },
+  {
+    id: 'dbrdl', name: '啞鈴羅馬尼亞硬舉', en: 'Romanian Deadlift', group: '下肢', muscles: ['腿後肌', '臀大肌', '下背'],
+    difficulty: 2, type: 'reps', defaultReps: 10, kcalPerMin: 7, demo: 'dbrdl', cat: 'db',
+    steps: ['雙手各握一個啞鈴垂在大腿前，膝蓋微彎', '臀部往後推、上身前傾，啞鈴沿著大腿往下滑', '降到小腿中段、感覺大腿後側拉緊', '臀部往前推回站直，頂端夾臀'],
+    tip: '背部全程打直、肩膀往後收；這是「推臀」不是「蹲」，膝蓋角度幾乎不變。',
+  },
+  {
+    id: 'dbrow', name: '啞鈴俯身划船', en: 'Bent-over Row', group: '上肢', muscles: ['背闊肌', '後三角肌', '二頭肌'],
+    difficulty: 2, type: 'reps', defaultReps: 10, kcalPerMin: 6, demo: 'dbrow', cat: 'db',
+    steps: ['雙手各握啞鈴，膝蓋微彎、上身前傾約 45 度', '手臂自然垂下，背打直', '手肘往後上方拉，把啞鈴拉到腰側', '停一下夾緊背部，再慢慢放下'],
+    tip: '用手肘帶動而不是用手腕甩；拉的時候肩膀不要聳到耳朵。',
+  },
+  {
+    id: 'dbfloorpress', name: '啞鈴地板臥推', en: 'Floor Press', group: '上肢', muscles: ['胸大肌', '三頭肌', '前三角肌'],
+    difficulty: 1, type: 'reps', defaultReps: 12, kcalPerMin: 6, demo: 'dbfloorpress', cat: 'db',
+    steps: ['仰躺屈膝，雙手各握啞鈴，上臂貼地、前臂垂直', '吐氣，把啞鈴往天花板推直', '在頂端稍停，啞鈴不要互撞', '吸氣，慢慢放下直到上臂輕觸地面'],
+    tip: '沒有臥推椅的好選擇；手肘與身體約呈 45 度，不要完全打開成 T 字。',
+  },
+  {
+    id: 'dbpress', name: '啞鈴站姿肩推', en: 'Shoulder Press', group: '上肢', muscles: ['三角肌', '三頭肌', '核心'],
+    difficulty: 2, type: 'reps', defaultReps: 10, kcalPerMin: 6, demo: 'dbpress', cat: 'db',
+    steps: ['站直，雙手握啞鈴停在肩膀高度，掌心相對', '收緊腹部與臀部', '吐氣，把啞鈴往上推到手臂接近伸直', '慢慢放回肩膀高度'],
+    tip: '推的時候不要後仰塌腰；肋骨往下收，頭在雙臂之間。',
+  },
+  {
+    id: 'dblateral', name: '啞鈴側平舉', en: 'Lateral Raise', group: '上肢', muscles: ['三角肌', '斜方肌'],
+    difficulty: 1, type: 'reps', defaultReps: 12, kcalPerMin: 5, demo: 'dblateral', cat: 'db',
+    steps: ['站直，雙手各握輕啞鈴垂在身側，手肘微彎', '手臂往兩側舉起，帶動的是手肘', '舉到約與肩同高、身體呈 T 字', '慢慢放下，不要甩'],
+    tip: '重量選輕一點；肩膀不要聳起，舉到肩高就好。',
+  },
+  {
+    id: 'dbcurl', name: '啞鈴二頭彎舉', en: 'Biceps Curl', group: '上肢', muscles: ['二頭肌', '前臂'],
+    difficulty: 1, type: 'reps', defaultReps: 12, kcalPerMin: 4, demo: 'dbcurl', cat: 'db',
+    steps: ['站直，雙手握啞鈴垂在身側', '上臂貼住身體不動', '彎曲手肘把啞鈴舉到肩前', '停一下，慢慢放下到手臂伸直'],
+    tip: '身體不要前後晃動借力；放下時控制速度效果更好。',
+  },
+  {
+    id: 'dbhammer', name: '啞鈴錘式彎舉', en: 'Hammer Curl', group: '上肢', muscles: ['二頭肌', '前臂'],
+    difficulty: 1, type: 'reps', defaultReps: 10, kcalPerMin: 4, demo: 'dbhammer', cat: 'db',
+    steps: ['站直，雙手握啞鈴、掌心朝內像握鐵鎚', '上臂貼身', '左右交替彎曲手肘把啞鈴舉到肩前', '慢慢放下再換手'],
+    tip: '次數以單手計；掌心全程朝內，手腕不要彎。',
+  },
+  {
+    id: 'dbtricep', name: '啞鈴過頭三頭伸展', en: 'Overhead Triceps Extension', group: '上肢', muscles: ['三頭肌'],
+    difficulty: 2, type: 'reps', defaultReps: 12, kcalPerMin: 4, demo: 'dbtricep', cat: 'db',
+    steps: ['站直或坐著，雙手捧住一個啞鈴舉過頭頂', '上臂靠近耳朵固定不動', '彎曲手肘讓啞鈴慢慢降到頭後方', '伸直手肘把啞鈴推回頭頂'],
+    tip: '手肘朝前、不要往外開；腹部收緊避免腰往後凹。',
+  },
+  {
+    id: 'dbrevlunge', name: '啞鈴後跨弓箭步', en: 'Reverse Lunge', group: '下肢', muscles: ['股四頭肌', '臀大肌', '腿後肌'],
+    difficulty: 2, type: 'reps', defaultReps: 10, kcalPerMin: 7, demo: 'dbrevlunge', cat: 'db',
+    steps: ['雙手各握啞鈴垂在身側，站直', '一腳往後跨一大步，腳尖著地', '身體垂直往下，前後膝蓋約 90 度', '前腳踩穩發力站回原位，左右交替'],
+    tip: '比前跨弓箭步更護膝；重心放在前腳，上身保持直立。',
+  },
+  {
+    id: 'dbrenegade', name: '啞鈴叛逆者划船', en: 'Renegade Row', group: '全身', muscles: ['背闊肌', '核心', '肩部穩定肌群'],
+    difficulty: 3, type: 'reps', defaultReps: 8, kcalPerMin: 8, demo: 'dbrenegade', cat: 'db',
+    steps: ['雙手握啞鈴撐地成高棒式，雙腳打開比肩寬', '身體呈一直線，收緊核心', '一手把啞鈴往腰側拉起，另一手撐穩', '放回地面再換手，臀部不要左右扭'],
+    tip: '次數以單手計；用六角或平底啞鈴比較穩，腳打開越寬越容易。',
+  },
+  {
+    id: 'dbfarmer', name: '啞鈴農夫走路', en: "Farmer's Carry", group: '全身', muscles: ['前臂', '斜方肌', '核心'],
+    difficulty: 1, type: 'time', defaultSeconds: 40, kcalPerMin: 6, demo: 'dbfarmer', cat: 'db', quiet: true,
+    steps: ['雙手各提一個較重的啞鈴垂在身側', '挺胸、肩膀往後下沉', '小步原地踏步或來回走', '保持身體不歪不晃，維持指定時間'],
+    tip: '練握力與核心的好動作；空間小就原地踏步，握不住就休息。',
+  },
+  {
+    id: 'dbcalf', name: '啞鈴提踵', en: 'Calf Raise', group: '下肢', muscles: ['小腿'],
+    difficulty: 1, type: 'reps', defaultReps: 15, kcalPerMin: 4, demo: 'dbcalf', cat: 'db', quiet: true,
+    steps: ['雙手各握啞鈴垂在身側，雙腳與髖同寬', '腳跟慢慢往上踮到最高', '在頂端停 1 秒', '慢慢放下腳跟'],
+    tip: '踮起時重心在大拇趾球；可以站在台階邊緣增加幅度。',
+  },
+  {
+    id: 'dbbridge', name: '啞鈴臀橋', en: 'Dumbbell Glute Bridge', group: '下肢', muscles: ['臀大肌', '腿後肌', '核心'],
+    difficulty: 1, type: 'reps', defaultReps: 12, kcalPerMin: 5, demo: 'dbbridge', cat: 'db', quiet: true,
+    steps: ['仰躺屈膝，雙腳踩地與髖同寬', '雙手把一個啞鈴壓在髖骨上', '腳跟發力把臀部推高，身體從肩到膝呈直線', '頂端夾臀停 1 秒，慢慢放下'],
+    tip: '用臀部而不是腰出力；頂端不要過度挺腰。',
+  },
 ]
 
 export const EX_MAP: Record<string, Exercise> = Object.fromEntries(EXERCISES.map((e) => [e.id, e]))
 export const GROUPS = ['全部', '上肢', '核心', '下肢', '全身'] as const
 /** library / picker filter chips */
-export const FILTERS = ['全部', '瘦身操', '安靜不跳', '上肢', '核心', '下肢', '全身'] as const
+export const FILTERS = ['全部', '瘦身操', '安靜不跳', '啞鈴', '上肢', '核心', '下肢', '全身'] as const
 export type Filter = (typeof FILTERS)[number]
 export function matchFilter(e: Exercise, f: Filter): boolean {
   if (f === '全部') return true
   if (f === '瘦身操') return e.cat === 'aero'
   if (f === '安靜不跳') return e.cat === 'aero' && !!e.quiet
+  if (f === '啞鈴') return e.cat === 'db'
   return e.group === f
 }
+export const DB_COUNT = EXERCISES.filter((e) => e.cat === 'db').length
 export const AERO_COUNT = EXERCISES.filter((e) => e.cat === 'aero').length
 export const DIFF_LABEL = ['', '入門', '中等', '進階'] as const

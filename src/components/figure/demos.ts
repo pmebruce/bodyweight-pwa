@@ -29,6 +29,8 @@ export interface Demo {
   trail?: [number, number]
   /** default hand shape (keys can override per arm) */
   hand?: Hand
+  /** dumbbells: one in each hand, or a single one held in the near hand */
+  db?: 'pair' | 'one'
 }
 const view = (cx: number, w = 142): [number, number, number] => [+Math.max(0, Math.min(200 - w, cx - w / 2)).toFixed(1), +(138 - w * 0.77).toFixed(1), w]
 
@@ -262,6 +264,8 @@ const DEMO_HAND: Partial<Record<DemoKey, Hand>> = {
   dips: 'grip', pullup: 'grip',
   highknees: 'fist', march: 'fist', buttkick: 'fist', punch: 'fist', uppercut: 'fist',
   sideleg: 'relax', hula: 'relax', sidelunge: 'relax',
+  dbgoblet: 'fist', dbrdl: 'fist', dbrow: 'fist', dbfloorpress: 'fist', dbpress: 'fist', dblateral: 'fist', dbcurl: 'fist', dbhammer: 'fist',
+  dbtricep: 'fist', dbrevlunge: 'fist', dbrenegade: 'fist', dbfarmer: 'fist', dbcalf: 'fist', dbbridge: 'fist',
 }
 
 export const DEMOS: Record<DemoKey, Demo> = {
@@ -697,6 +701,153 @@ export const DEMOS: Record<DemoKey, Demo> = {
     ],
     dur: [500, 500, 800, 450, 450, 500, 500, 800, 450, 450],
     still: 2,
+  },
+
+  /* ================= 啞鈴 (dumbbells), side view facing right unless noted ================= */
+  // goblet squat: one bell at the chest, elbows down; slow 2 s lowering, brief pause, drive up
+  dbgoblet: {
+    view: view(104, 170), db: 'one',
+    keys: [
+      k([98, 72.6], 179, { armN: fk(18, 138), armF: fk(16, 140), legN: flat(101), legF: flat(98) }, { n: 0 }),
+      k([86, 97.5], 150, { armN: fk(44, 128), armF: fk(42, 130), legN: flat(101), legF: flat(98) }, { n: 16 }),
+      k([86, 97.5], 150, { armN: fk(44, 128), armF: fk(42, 130), legN: flat(101), legF: flat(98) }, { n: 16 }),
+    ],
+    dur: [1500, 250, 950], still: 1,
+  },
+  // Romanian deadlift: hips travel back, knees stay soft, bells slide down the thighs, flat back
+  dbrdl: {
+    view: view(100, 170), db: 'pair', headLag: 0.02,
+    keys: [
+      k([98, 73.2], 179, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([84, 75.4], 104, { armN: fk(8, 6), armF: fk(6, 6), legN: flat(100), legF: flat(97) }, { n: -22 }),
+      k([84, 75.4], 104, { armN: fk(8, 6), armF: fk(6, 6), legN: flat(100), legF: flat(97) }, { n: -22 }),
+    ],
+    dur: [1600, 250, 1000], still: 1,
+  },
+  // bent-over row: hinge held, elbows drive back to the hips, slow lower
+  dbrow: {
+    view: view(98, 170), db: 'pair',
+    keys: [
+      k([86, 75.6], 118, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(100), legF: flat(97) }, { n: -18 }),
+      k([86, 75.4], 119, { armN: fk(-68, 74), armF: fk(-70, 76), legN: flat(100), legF: flat(97) }, { n: -18 }),
+      k([86, 75.4], 119, { armN: fk(-68, 74), armF: fk(-70, 76), legN: flat(100), legF: flat(97) }, { n: -18 }),
+    ],
+    dur: [750, 250, 1200], still: 1,
+  },
+  // floor press: lying, knees bent; upper arms touch the floor, then press to straight arms
+  dbfloorpress: {
+    view: view(95), db: 'pair',
+    keys: [
+      k([95, 121.4], 271.4, { armN: fk(84, 92), armF: fk(82, 94), legN: flat(118), legF: flat(115) }, { h: 272 }),
+      k([95, 121.4], 271.4, { armN: fk(176, 4), armF: fk(174, 4), legN: flat(118), legF: flat(115) }, { h: 272 }),
+      k([95, 121.4], 271.4, { armN: fk(176, 4), armF: fk(174, 4), legN: flat(118), legF: flat(115) }, { h: 272 }),
+    ],
+    dur: [800, 200, 1300], still: 1,
+  },
+  // standing shoulder press: bells at the shoulders -> overhead, ribs down
+  dbpress: {
+    view: view(100, 180), db: 'pair',
+    keys: [
+      k([98, 73.2], 180, { armN: fk(26, 150), armF: fk(24, 152), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 72.8], 181, { armN: fk(172, 8), armF: fk(170, 8), legN: flat(100), legF: flat(97) }, { n: -2, sh: 0.6 }),
+      k([98, 72.8], 181, { armN: fk(172, 8), armF: fk(170, 8), legN: flat(100), legF: flat(97) }, { n: -2, sh: 0.6 }),
+    ],
+    dur: [850, 200, 1250], still: 1,
+  },
+  // lateral raise (front view): elbows lead to shoulder height, slight forward angle
+  dblateral: {
+    view: view(100, 170), front: true, db: 'pair', lag: 0.01,
+    keys: [
+      k([100, hipY(100, 180, FLAT(106), FLAT(94), 1.2)], 180, { ...both(arm3(10, 8, 14, 4)), legN: ff(106), legF: ff(94) }, { pa: 180, h: 180 }),
+      k([100, hipY(100, 180, FLAT(106), FLAT(94), 1.2)], 180, { ...both(arm3(84, 16, 16, 6)), legN: ff(106), legF: ff(94) }, { pa: 180, h: 180, sh: 0.3 }),
+      k([100, hipY(100, 180, FLAT(106), FLAT(94), 1.2)], 180, { ...both(arm3(84, 16, 16, 6)), legN: ff(106), legF: ff(94) }, { pa: 180, h: 180, sh: 0.3 }),
+    ],
+    dur: [900, 200, 1300], still: 1,
+  },
+  // biceps curl: upper arms pinned, elbows drift slightly forward at the top
+  dbcurl: {
+    view: view(100, 170), db: 'pair',
+    keys: [
+      k([98, 73.2], 180, { armN: fk(4, 10), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(16, 142), armF: fk(14, 144), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(16, 142), armF: fk(14, 144), legN: flat(100), legF: flat(97) }, { n: 0 }),
+    ],
+    dur: [800, 200, 1300], still: 1,
+  },
+  // hammer curl: alternating arms
+  dbhammer: {
+    view: view(100, 170), db: 'pair',
+    keys: [
+      k([98, 73.2], 180, { armN: fk(4, 10), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(14, 140), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180, { armN: fk(4, 10), armF: fk(2, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180.5, { armN: fk(4, 10), armF: fk(12, 142), legN: flat(100), legF: flat(97) }, { n: 0 }),
+    ],
+    dur: [800, 1200, 800, 1200], still: 1,
+  },
+  // overhead triceps extension: one bell in both hands, upper arms by the ears
+  dbtricep: {
+    view: view(100, 180), db: 'one',
+    keys: [
+      k([98, 73.2], 180, { armN: fk(168, 10), armF: fk(166, 10), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98, 73.2], 180, { armN: fk(160, 128), armF: fk(158, 130), legN: flat(100), legF: flat(97) }, { n: 4 }),
+      k([98, 73.2], 180, { armN: fk(160, 128), armF: fk(158, 130), legN: flat(100), legF: flat(97) }, { n: 4 }),
+    ],
+    dur: [1300, 200, 850], still: 1,
+  },
+  // reverse lunge: back foot reaches back to the ball of the foot, body drops straight down
+  dbrevlunge: {
+    view: view(92, 180), db: 'pair', headLag: 0.015,
+    keys: [
+      k([98, 72.6], 180, { armN: fk(2, 8), armF: fk(0, 8), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([94, 74.6], 179, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(100), legF: { t: [84, 116], e: 70 } }, { n: 0 }),
+      k([82, 97.5], 178, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(102), legF: toes(70, 115.2, 32) }, { n: 0 }),
+      k([82, 97.5], 178, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(102), legF: toes(70, 115.2, 32) }, { n: 0 }),
+      k([94, 74.6], 179, { armN: fk(4, 8), armF: fk(2, 8), legN: flat(100), legF: { t: [84, 116], e: 70 } }, { n: 0 }),
+    ],
+    dur: [500, 700, 200, 600, 500], still: 2,
+  },
+  // renegade row: high plank on the bells, alternate rows, hips stay square
+  dbrenegade: {
+    view: view(91.4), db: 'pair',
+    keys: [
+      k([92, 100.4], 108, { armN: palm(115), armF: palm(112), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+      k([92, 100.0], 108, { armN: fk(-40, 100), armF: palm(112), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+      k([92, 100.4], 108, { armN: palm(115), armF: palm(112), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+      k([92, 100.0], 108, { armN: palm(115), armF: fk(-40, 100), legN: toes(43.5, 114.6), legF: toes(40, 114.6) }, { n: 4 }),
+    ],
+    dur: [700, 900, 700, 900], still: 1,
+  },
+  // farmer's carry in place: tall, small steps, arms long and still
+  dbfarmer: {
+    view: view(102, 170), db: 'pair', smooth: true,
+    keys: [
+      k([98, 72.9], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98.4, 71.9], 180, { armN: fk(3, 6), armF: fk(-1, 6), legN: fk(34, 50), legF: flat(97) }, { n: 0 }),
+      k([98, 72.9], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([97.6, 71.9], 180, { armN: fk(1, 6), armF: fk(1, 6), legN: flat(100), legF: fk(34, 50) }, { n: 0 }),
+    ],
+    dur: 420, still: 1,
+  },
+  // calf raise: rise onto the balls of the feet, pause, slow lower
+  dbcalf: {
+    view: view(100, 170), db: 'pair',
+    keys: [
+      k([98, 72.6], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([98.6, 67.6], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: toes(100.6, ANK - 5, 58), legF: toes(97.6, ANK - 5, 58) }, { n: 0 }),
+      k([98.6, 67.6], 180, { armN: fk(2, 6), armF: fk(0, 6), legN: toes(100.6, ANK - 5, 58), legF: toes(97.6, ANK - 5, 58) }, { n: 0 }),
+    ],
+    dur: [700, 400, 1100], still: 1,
+  },
+  // dumbbell glute bridge: bell held on the hip bones
+  dbbridge: {
+    view: view(87), db: 'one',
+    keys: [
+      k([95, 121.4], 271.4, { armN: fk(40, 70), armF: fk(38, 72), legN: flat(118), legF: flat(115) }, { h: 272 }),
+      k([92.4, 109.6], 293.4, { armN: fk(40, 70), armF: fk(38, 72), legN: flat(118), legF: flat(115) }, { h: 270 }),
+      k([92.4, 109.6], 293.4, { armN: fk(40, 70), armF: fk(38, 72), legN: flat(118), legF: flat(115) }, { h: 270 }),
+    ],
+    dur: [800, 450, 1000], still: 1,
   },
 
 }
