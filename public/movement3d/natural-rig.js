@@ -2,7 +2,8 @@ import * as T from './assets/three.module.js';
 import {MOTIONS,createMotion} from './motion-library.js';
 const V=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
 const lerp=(a,b,t)=>a+(b-a)*t;
-export function depthAt(t){const smooth=x=>x*x*(3-2*x);if(t<.12)return 0;if(t<.55)return smooth((t-.12)/.43);if(t<.65)return 1;if(t<.94)return 1-smooth((t-.65)/.29);return 0;}
+// Controlled lowering (~45% of the rep), a short pause at the bottom, a quicker drive up and a settle at the top.
+export function depthAt(t){const smooth=x=>x*x*x*(x*(x*6-15)+10);if(t<.08)return 0;if(t<.56)return smooth((t-.08)/.48);if(t<.64)return 1;if(t<.93)return 1-smooth((t-.64)/.29);return 0;}
 export function createNaturalRig(model){
   model.updateMatrixWorld(true);
   const aliases={pelvis:'Hips',spine_01:'Spine',spine_02:'Spine1',spine_03:'Spine2',neck_01:'Neck',head:'Head'};
@@ -243,7 +244,7 @@ export function createNaturalRig(model){
   }
   function pose(t){const q=depthAt(t);
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
-    if(!['squat','pushup','lunge','jack','armcircle'].includes(exercise)){retarget(t);return;}
+    if(!['squat','pushup','lunge','jack','armcircle'].includes(exercise)){retarget(t);secondaryHead(t);model.updateMatrixWorld(true);return;}
     if(exercise==='armcircle'){
       // A moderate cone around the outstretched arm, with independent shoulder motion.
       // The neck, chest and pelvis do not inherit the old projected shrug/bob.
@@ -268,9 +269,10 @@ export function createNaturalRig(model){
       const tilt=.10+.09*q;rootAt(V(0,lerp(.81,.53,q),-.10),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.02));
       for(const f of feet){const front=(f.s===-1)!==flipped;f.target.set(f.s*.12,front?.074:.174,front?.38:-.55);solve(f,f.target,V(0,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),front?0:.60).multiply(f.footQ));}standingArms(.45);
     }else if(exercise==='jack'){
-      const open=.5-.5*Math.cos(2*Math.PI*t),hop=.095*Math.sin(Math.PI*(t%.5)/.5),footX=lerp(.11,.33,open),dx=footX-.09;
-      rootAt(V(0,.074+hop+Math.sqrt((Math.min(...feet.map(f=>f.L1+f.L2))-.01)**2-dx*dx)+.005,-.015),V(0,1,0));torso(V(0,1,0));
-      for(const f of feet){f.target.set(f.s*footX,.074+hop,-.048);solve(f,f.target,V(0,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);const a=lerp(.13,2.96,open);aim(f.side+'Arm',f.side+'ForeArm',V(f.s*Math.sin(a),-Math.cos(a),.03));aim(f.side+'ForeArm',f.side+'Hand',V(f.s*Math.sin(a+.08),-Math.cos(a+.08),.03));}
+      const open=.5-.5*Math.cos(2*Math.PI*t),armOpen=.5-.5*Math.cos(2*Math.PI*(t-.035)),ph=(t%.5)/.5,hop=.095*Math.sin(Math.PI*ph),land=.026*Math.pow(Math.cos(Math.PI*ph),10),footX=lerp(.11,.33,open),dx=footX-.09;
+      // knees absorb each landing; arms trail the legs slightly
+      rootAt(V(0,.074+hop-land+Math.sqrt((Math.min(...feet.map(f=>f.L1+f.L2))-.01)**2-dx*dx)+.005,-.015),V(0,1,0));torso(V(0,1,0));
+      for(const f of feet){f.target.set(f.s*footX,.074+hop,-.048);solve(f,f.target,V(0,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);const a=lerp(.13,2.96,armOpen);aim(f.side+'Arm',f.side+'ForeArm',V(f.s*Math.sin(a),-Math.cos(a),.03));aim(f.side+'ForeArm',f.side+'Hand',V(f.s*Math.sin(a+.08),-Math.cos(a+.08),.03));}
     }else{
       const hipLead=Math.sin(q*Math.PI)*.025,tilt=q*.43+hipLead;const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=stanceWidth/2-Math.abs(hp.x),dz=-.048-(-.055+hp.z-rootRest.z),startY=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);rootAt(V(0,lerp(startY,.59,q),lerp(-.055,-.35,q)-hipLead),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.08*q));
       for(const f of feet){f.target.set(f.s*stanceWidth/2,.074,-.048);solve(f,f.target,V(f.s*.20,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.18).multiply(f.footQ));}const armQ=depthAt((t+.985)%1);standingArms(lerp(.18,1.38,armQ));
@@ -280,7 +282,21 @@ export function createNaturalRig(model){
       orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
       if(exercise==='lunge')relaxDigits(h,palm);
     }
+    secondaryHead(t);
     model.updateMatrixWorld(true);
+  }
+  // Secondary motion: the head lags the trunk's vertical velocity a little and breathes slowly on long loops.
+  function secondaryHead(t){
+    if(exercise==='armcircle')return;// arm circles keep a deliberately still head and trunk
+    if(!motionCache.has(exercise))motionCache.set(exercise,createMotion(exercise));
+    const m=motionCache.get(exercise),dur=MOTIONS[exercise].duration,dt=.02,a=m.at(t).p[1],b=m.at(t-dt).p[1];
+    const vel=(a-b)/(dt*dur);// svg units per second (+ = moving down)
+    let pitch=T.MathUtils.clamp(-vel*.0016,-.07,.07);
+    const breaths=Math.round(dur/3.2);if(breaths>0)pitch+=.018*Math.sin(2*Math.PI*breaths*t);
+    if(Math.abs(pitch)<1e-4)return;
+    model.updateMatrixWorld(true);
+    const side=V(1,0,0),q=new T.Quaternion().setFromAxisAngle(side,pitch);
+    rotateWorld(bones.Head,q.multiply(bones.Head.getWorldQuaternion(new T.Quaternion())));
   }
   const meshes=[];
   model.traverse(o=>{if(!o.isSkinnedMesh)return;
