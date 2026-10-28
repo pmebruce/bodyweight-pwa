@@ -244,7 +244,7 @@ export function createNaturalRig(model){
   }
   function pose(t){const q=depthAt(t);
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
-    if(!['squat','pushup','lunge','jack','armcircle'].includes(exercise)){retarget(t);secondaryHead(t);model.updateMatrixWorld(true);return;}
+    if(!['squat','pushup','lunge','jack','armcircle','kickclap'].includes(exercise)){retarget(t);secondaryHead(t);model.updateMatrixWorld(true);return;}
     if(exercise==='armcircle'){
       // A moderate cone around the outstretched arm, with independent shoulder motion.
       // The neck, chest and pelvis do not inherit the old projected shrug/bob.
@@ -261,6 +261,44 @@ export function createNaturalRig(model){
         aim(f.side+'ForeArm',f.side+'Hand',fore);aim(f.side+'Hand',f.side+'HandMiddle1',fore);
       }
       model.updateMatrixWorld(true);raiseAboveFloor(V(0,y,0),up);
+    }else if(exercise==='kickclap'){
+      // One kick per half loop. Weight shifts over the bent standing leg first, the kicking leg
+      // swings almost straight from the hip to waist height, the trunk curls slightly forward, and the
+      // arms sweep down from overhead so the hands clap under the thigh exactly at the kick peak.
+      const ss=x=>{x=T.MathUtils.clamp(x,0,1);return x*x*x*(x*(x*6-15)+10);};
+      const h=(t%.5)/.5,kickSide=(t<.5)!==flipped?-1:1;
+      const prof=x=>x<.40?ss((x-.06)/.34):x<.52?1:ss(1-(x-.52)/.38);// up, brief peak hold, controlled lowering
+      const k=prof(h),ka=h<.44?ss(h/.44):h<.52?1:ss(1-(h-.52)/.48);// arms use the whole half loop so the sweep stays smooth// arms trail slightly so the clap lands on the peak
+      const shift=Math.sin(Math.PI*h),f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp;
+      const stance=.115,dx=stance-Math.abs(hp.x),dz=-.048-(hp.z-rootRest.z);
+      const y0=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);
+      const lean=.26*ka,up=V(-kickSide*.035*shift,Math.cos(lean),Math.sin(lean)).normalize();// small crunch toward the knee so the hands can reach under it
+      const root=V(-kickSide*.040*shift,y0-.022*shift-.018*k,-.01*k);rootAt(root,up);torso(up,V(0,1,.12*ka).normalize());
+      for(const f of feet){
+        const G=V(f.s*stance,.074,-.048);
+        if(f.s!==kickSide){f.target.copy(G);solve(f,f.target,V(f.s*.15,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.12).multiply(f.footQ));continue;}
+        const H=world(f.upper),Lm=f.L1+f.L2,th=1.30*k,reach=Lm*(.985-.07*Math.sin(Math.PI*k));
+        const K=H.clone().add(V(f.s*.02*k,-Math.cos(th)*reach,Math.sin(th)*reach));
+        const lift=ss(k*4);f.target.copy(G).lerp(K,lift);f.target.y=Math.max(f.target.y,.074);
+        solve(f,f.target,V(0,.15,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');
+        rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),.55*k).multiply(new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.12)).multiply(f.footQ));
+      }
+      model.updateMatrixWorld(true);
+      const kf=feet.find(f=>f.s===kickSide),H=world(kf.upper),Kn=world(kf.lower),Ft=world(kf.foot);
+      const legDir=Ft.clone().sub(H).normalize(),under=V(0,-1,0).addScaledVector(legDir,legDir.y).normalize();
+      const clap=H.clone().lerp(Kn,.72).addScaledVector(under,.10);
+      for(const hd of hands){
+        // nearly straight arm swinging on an arc about the shoulder: overhead -> down in front -> under the thigh
+        const S=world(bones[hd.side+'Arm']),C=clap.clone().add(V(hd.s*.052,0,0)),dC=C.clone().sub(S);
+        const phC=Math.atan2(Math.max(dC.z,0),dC.y),ph0=-.12,ph=lerp(ph0,phC,ka),R=lerp(hd.L1+hd.L2-.03,Math.min(dC.length(),hd.L1+hd.L2-.01),ka);
+        const tgt=S.clone().add(V(lerp(hd.s*.07,dC.x,ka),R*Math.cos(ph),R*Math.sin(ph)));
+        solve(hd,tgt,V(hd.s,-.3*Math.sin(ph),.3*Math.cos(ph)),hd.side+'Arm',hd.side+'ForeArm',hd.side+'Hand');
+        // palms face each other; fingers turn parallel as the hands meet (same hand finish as before)
+        const fore=world(hd.end).sub(world(hd.lower)).normalize(),palm=V(-hd.s,0,0),finger=fore.clone();finger.x*=1-ka;finger.normalize();
+        orientSegment(hd.side+'ForeArm',hd.side+'Hand',fore,palm);orientSegment(hd.side+'Hand',hd.side+'HandMiddle1',finger,palm);resetDigits(hd);
+        orientSegment(hd.side+'HandThumb1',hd.side+'HandThumb2',finger.clone().add(V(0,0,-.45)),palm);orientSegment(hd.side+'HandThumb2',hd.side+'HandThumb3',finger.clone().add(V(0,0,-.15)),palm);
+      }
+      model.updateMatrixWorld(true);raiseAboveFloor(root,up);
     }else if(exercise==='pushup'){
       const up=V(0,lerp(.18,-.03,q),1).normalize();rootAt(V(0,lerp(.38,.24,q),0),up);const A=world(feet[0].upper),length=Math.min(...feet.map(f=>f.L1+f.L2))-.001,dy=A.y-.232,dx=A.x+.10;const rootZ=-1.21+Math.sqrt(length*length-dy*dy-dx*dx)-A.z;rootAt(V(0,lerp(.38,.24,q),rootZ),up);torso(up,up);
       for(const f of feet){f.target.set(f.s*.10,.232,-1.21);solve(f,f.target,V(0,-1,0),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),.92).multiply(f.footQ));}
@@ -277,7 +315,7 @@ export function createNaturalRig(model){
       const hipLead=Math.sin(q*Math.PI)*.025,tilt=q*.43+hipLead;const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=stanceWidth/2-Math.abs(hp.x),dz=-.048-(-.055+hp.z-rootRest.z),startY=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);rootAt(V(0,lerp(startY,.59,q),lerp(-.055,-.35,q)-hipLead),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.08*q));
       for(const f of feet){f.target.set(f.s*stanceWidth/2,.074,-.048);solve(f,f.target,V(f.s*.20,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.18).multiply(f.footQ));}const armQ=depthAt((t+.985)%1);standingArms(lerp(.18,1.38,armQ));
     }
-    if(exercise!=='pushup')for(const h of hands){
+    if(exercise!=='pushup'&&exercise!=='kickclap')for(const h of hands){
       const fore=world(h.end).sub(world(h.lower)).normalize(),palm=exercise==='armcircle'?V(0,-1,0):exercise==='jack'?V(0,0,1):V(-h.s,0,0);
       orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
       if(exercise==='lunge')relaxDigits(h,palm);
