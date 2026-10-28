@@ -475,9 +475,9 @@ var SJ_MID = { a: 84, f: 8, k: 22, b: 18 };
 var SJ_UP = { a: 160, f: 6, k: 12, b: 20 };
 var stepjackHalf = [
   k([100, SJ_C], 180, { armN: SJ_DOWN, armF: SJ_DOWN, legN: ff(104.5), legF: ff(95.5) }, { pa: 180, h: 180 }),
-  k([98.4, hipY(98.4, 177.5, FLAT(95.5), FLAT(95.5), 0.9)], 179.2, { armN: SJ_MID, armF: SJ_MID, legN: { t: [113, AF - 4], e: 90, toe: 0.35, z: 0.5 }, legF: ff(95.5) }, { pa: 177.5, sh: 0.6, h: 180.4 }),
-  k([102.6, hipY(102.6, 180.6, FLAT(121), FLAT(95.5), 2.4)], 180.4, { armN: SJ_UP, armF: SJ_UP, legN: ff(121), legF: ff(95.5) }, { pa: 180.6, sh: 1.6, h: 179.8 }),
-  k([98.6, hipY(98.6, 177.8, FLAT(95.5), FLAT(95.5), 0.9)], 179.3, { armN: SJ_MID, armF: SJ_MID, legN: { t: [111, AF - 3.4], e: 90, toe: 0.3, z: 0.5 }, legF: ff(95.5) }, { pa: 177.8, sh: 0.6, h: 180.4 })
+  k([98.4, hipY(98.4, 177.5, FLAT(95.5), FLAT(95.5), 1.8)], 179.2, { armN: SJ_MID, armF: SJ_MID, legN: { t: [113, AF - 4], e: 90, toe: 0.35, z: 0.5 }, legF: ff(95.5) }, { pa: 177.5, sh: 0.6, h: 180.4 }),
+  k([102.6, hipY(102.6, 180.6, FLAT(121), FLAT(95.5), 3.4)], 180.4, { armN: SJ_UP, armF: SJ_UP, legN: ff(121), legF: ff(95.5) }, { pa: 180.6, sh: 1.6, h: 179.8 }),
+  k([98.6, hipY(98.6, 177.8, FLAT(95.5), FLAT(95.5), 1.8)], 179.3, { armN: SJ_MID, armF: SJ_MID, legN: { t: [111, AF - 3.4], e: 90, toe: 0.3, z: 0.5 }, legF: ff(95.5) }, { pa: 177.8, sh: 0.6, h: 180.4 })
 ];
 var SL_C = hipY(100, 180, FLAT(105), FLAT(95), 1);
 var SL_S = hipY(97.2, 178.8, FLAT(105), FLAT(95), 0.9);
@@ -504,9 +504,9 @@ var HU_ARM_LO = { a: 70, f: 12, k: 26, b: 14 };
 var HU_ARM_MID = { a: 82, f: 12, k: 30, b: 20 };
 var hulaHalf = [
   // hips out to the right: right hip hikes, left knee softens, shoulders stay over the feet
-  k([107, hipY(107, 188, HU_N, HU_F, 1.2)], 191, { armN: HU_ARM_HI, armF: HU_ARM_LO, legN: ff(108), legF: ff(92) }, { pa: 188, h: 180 }),
+  k([109, hipY(109, 190, HU_N, HU_F, 2)], 192, { armN: HU_ARM_HI, armF: HU_ARM_LO, legN: ff(108), legF: ff(92) }, { pa: 190, h: 179.5 }),
   // through the middle (hips forward): body rises
-  k([100, hipY(100, 180, HU_N, HU_F, 0.8)], 180, { armN: HU_ARM_MID, armF: HU_ARM_MID, legN: ff(108), legF: ff(92) }, { pa: 180, h: 180 })
+  k([100, hipY(100, 180, HU_N, HU_F, 1.3)], 180, { armN: HU_ARM_MID, armF: HU_ARM_MID, legN: ff(108), legF: ff(92) }, { pa: 180, h: 180 })
 ];
 var SLG_W = hipY(100, 180, FLAT(129), FLAT(71), 0.6);
 var SLG_ARM = { a: -16, f: 35, k: 95, b: 34, e: 180, rel: true };
@@ -822,10 +822,12 @@ var DEMOS = {
     smooth: true,
     lag: 0.02,
     keys: [
-      k([98, 72.2], 180, { armN: fk(4, 86), armF: fk(-8, 92), legN: flat(100), legF: flat(97) }, { n: 0 }),
-      k([98, 71.2], 180, { armN: fk(-34, 84), armF: fk(34, 96), legN: fk(70, 86), legF: flat(97) }, { n: 0, sh: 0.5 }),
-      k([98, 72.2], 180, { armN: fk(-8, 92), armF: fk(4, 86), legN: flat(100), legF: flat(97) }, { n: 0 }),
-      k([98, 71.2], 180, { armN: fk(34, 96), armF: fk(-34, 84), legN: flat(100), legF: fk(70, 86) }, { n: 0, sh: 0.5 })
+      // both feet down between steps: knees soft, pelvis at its lowest
+      k([98, 72.9], 179.5, { armN: fk(2, 62), armF: fk(-4, 66), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      // near knee up: pelvis rises over the straighter stance leg, opposite arm swings forward
+      k([98.6, 71.4], 179, { armN: fk(-26, 58), armF: fk(30, 74), legN: fk(66, 82), legF: flat(97) }, { n: 1, sh: 0.4 }),
+      k([98, 72.9], 179.5, { armN: fk(-4, 66), armF: fk(2, 62), legN: flat(100), legF: flat(97) }, { n: 0 }),
+      k([97.4, 71.4], 179, { armN: fk(30, 74), armF: fk(-26, 58), legN: flat(100), legF: fk(66, 82) }, { n: 1, sh: 0.4 })
     ],
     dur: 300,
     still: 1
@@ -973,7 +975,7 @@ var DEMOS = {
       hulaHalf[1],
       mirror(hulaHalf[0]),
       // through the middle (hips back): body sinks a touch
-      k([100, hipY(100, 180, HU_N, HU_F, 1.6)], 180, { armN: HU_ARM_MID, armF: HU_ARM_MID, legN: ff(108), legF: ff(92) }, { pa: 180, h: 180 })
+      k([100, hipY(100, 180, HU_N, HU_F, 2.4)], 180, { armN: HU_ARM_MID, armF: HU_ARM_MID, legN: ff(108), legF: ff(92) }, { pa: 180, h: 180 })
     ],
     dur: 300,
     still: 0
