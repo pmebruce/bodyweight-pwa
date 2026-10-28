@@ -347,7 +347,11 @@ function resolveKey(key: Key, front: boolean): KeyRes {
 }
 
 const EASE = {
-  io: (t: number) => -(Math.cos(Math.PI * t) - 1) / 2,
+  // human ease-in-out: a brief settle at each end range, then a smooth (zero-jerk) quintic sweep
+  io: (t: number) => {
+    const u = Math.min(1, Math.max(0, (t - 0.06) / 0.88))
+    return u * u * u * (u * (u * 6 - 15) + 10)
+  },
   in: (t: number) => 1 - Math.cos((t * Math.PI) / 2),
   out: (t: number) => Math.sin((t * Math.PI) / 2),
   lin: (t: number) => t,
