@@ -7,7 +7,7 @@ import {MOTIONS} from './motion-library.js';
 import {createProps} from './scene-props.js';
 import {cameraPresets,cameraDistance} from './camera-presets.js';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),exercise=params.get('exercise'),meta=MOTIONS[exercise];
-let rig,renderer,playing=params.get('playing')==='true',speed=1,time=.05,raf=0,disposed=false,highlighted=true,needsRender=true,lastPose=NaN;
+let rig,renderer,playing=params.get('playing')==='true',speed=1,time=params.has('t')?(+params.get('t')%1+1)%1:.05,raf=0,disposed=false,highlighted=true,needsRender=true,lastPose=NaN;
 const post=type=>parent.postMessage({type},location.origin);
 function fail(error){console.error(error);$('loading').hidden=true;$('error').hidden=false;$('error').textContent='示範暫時無法載入，請重新整理再試一次。';post('movement3d-error');}
 if(!meta){fail('Unknown exercise');throw Error('Unknown exercise');}
