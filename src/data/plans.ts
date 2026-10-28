@@ -169,7 +169,7 @@ export const BUILTIN_PLANS: Plan[] = [
     ],
   },
   {
-    id: 'db-full20', name: '全身啞鈴 20 分鐘', builtIn: true, kind: 'db', hue: 210,
+    id: 'db-full20', name: '全身啞鈴 25 分鐘', builtIn: true, kind: 'db', hue: 210,
     description: '一對可調式啞鈴練遍全身：深蹲、硬舉、推、拉、核心，每組做完記下重量。',
     items: [
       { exerciseId: 'march', sets: 1, seconds: 45, rest: 15 },
