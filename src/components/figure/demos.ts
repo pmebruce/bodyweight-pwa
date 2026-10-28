@@ -246,7 +246,7 @@ const hipYz = (px: number, fN: [number, number, number], fF: [number, number, nu
 // orthodox stance: left (far, N) foot forward, right (near, F) foot back with the heel a little up
 const BX_N: LimbKey = { t: [104.4, AF], z: 11, e: 90, pole: 0.12 }
 const BX_F: LimbKey = { t: [95.4, AF - 1.2], z: -10, e: 90, pole: 0.12 }
-const BX_Y = hipYz(100, [104.4, AF, 11], [95.4, AF - 1.2, -10], 3.2)
+const BX_Y = hipYz(100, [104.4, AF, 11], [95.4, AF - 1.2, -10], 4.8) // athletic stance: knees clearly soft
 const GUARD: LimbKey = { a: -4, f: 18, k: 138, b: -12 }
 const JAB: LimbKey = { a: -9, f: 86, k: 4, b: 2 }
 const UP_LOAD: LimbKey = { a: 4, f: 8, k: 96, b: 14 }

@@ -581,7 +581,7 @@ var hipYz = (px, fN, fF, slack) => {
 };
 var BX_N = { t: [104.4, AF], z: 11, e: 90, pole: 0.12 };
 var BX_F = { t: [95.4, AF - 1.2], z: -10, e: 90, pole: 0.12 };
-var BX_Y = hipYz(100, [104.4, AF, 11], [95.4, AF - 1.2, -10], 3.2);
+var BX_Y = hipYz(100, [104.4, AF, 11], [95.4, AF - 1.2, -10], 4.8);
 var GUARD = { a: -4, f: 18, k: 138, b: -12 };
 var JAB = { a: -9, f: 86, k: 4, b: 2 };
 var UP_LOAD = { a: 4, f: 8, k: 96, b: 14 };

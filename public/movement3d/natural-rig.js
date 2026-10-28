@@ -250,7 +250,7 @@ export function createNaturalRig(model){
       // The neck, chest and pelvis do not inherit the old projected shrug/bob.
       const phase=2*Math.PI*t,c=Math.cos(phase),sn=Math.sin(phase),up=V(0,1,0);
       const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=.18-Math.abs(hp.x),dz=-.048-(hp.z-rootRest.z);
-      const y=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);
+      const y=.074+Math.sqrt((f0.L1+f0.L2-.022)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);// knees unlocked, not braced straight
       rootAt(V(0,y,0),up);torso(up);
       for(const f of feet){
         f.target.set(f.s*.18,.074,-.048);solve(f,f.target,V(f.s*.12,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);
