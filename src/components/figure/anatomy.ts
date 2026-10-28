@@ -4,7 +4,7 @@ import type { DemoKey } from '../../types'
 export type MuscleId =
   | 'chest' | 'frontDelt' | 'delts' | 'rearDelt' | 'traps' | 'triceps' | 'biceps' | 'forearm'
   | 'abs' | 'obliques' | 'lats' | 'lowerBack' | 'glutes' | 'quads' | 'hipFlexors' | 'adductors'
-  | 'hamstrings' | 'calves'
+  | 'hamstrings' | 'calves' | 'abductors'
 
 export const MUSCLE_LABEL: Record<MuscleId, string> = {
   chest: '胸肌',
@@ -20,6 +20,7 @@ export const MUSCLE_LABEL: Record<MuscleId, string> = {
   lats: '背闊肌',
   lowerBack: '下背',
   glutes: '臀肌',
+  abductors: '臀側肌群',
   quads: '股四頭肌',
   hipFlexors: '髖屈肌',
   adductors: '大腿內側',
@@ -30,10 +31,13 @@ export const MUSCLE_LABEL: Record<MuscleId, string> = {
 export interface Targets {
   /** primary movers (strong red) */
   p: MuscleId[]
-  /** secondary / stabilisers (light orange) */
+  /** clear synergists or necessary load-bearing stabilisers (light orange) */
   s: MuscleId[]
 }
 
+// Conservative teaching highlights for the demonstrated bodyweight variant.
+// Do not infer loading from a moving limb, a stretch, or incidental posture alone.
+// These describe participation across the cycle, not measured activation intensity.
 export const TARGETS: Record<DemoKey, Targets> = {
   pushup: { p: ['chest', 'triceps', 'frontDelt'], s: ['abs'] },
   diamond: { p: ['triceps', 'chest'], s: ['frontDelt', 'abs'] },
@@ -56,20 +60,20 @@ export const TARGETS: Record<DemoKey, Targets> = {
   jack: { p: ['delts', 'calves'], s: ['quads', 'adductors'] },
   highknees: { p: ['hipFlexors', 'quads'], s: ['calves', 'abs'] },
   // 瘦身操
-  march: { p: ['hipFlexors', 'quads'], s: ['calves', 'abs'] },
+  march: { p: ['hipFlexors'], s: ['quads', 'calves'] },
   buttkick: { p: ['hamstrings', 'calves'], s: ['glutes', 'hipFlexors'] },
   kickclap: { p: ['hipFlexors', 'quads'], s: ['abs', 'delts'] },
   punch: { p: ['frontDelt', 'triceps'], s: ['obliques', 'abs'] },
-  uppercut: { p: ['biceps', 'frontDelt'], s: ['obliques', 'quads'] },
-  armcircle: { p: ['delts', 'frontDelt', 'rearDelt'], s: ['traps'] },
+  uppercut: { p: ['frontDelt', 'obliques'], s: ['biceps', 'quads'] },
+  armcircle: { p: ['delts'], s: ['traps'] },
   stepjack: { p: ['delts', 'adductors'], s: ['quads', 'calves'] },
-  steptouch: { p: ['quads', 'adductors'], s: ['calves', 'chest'] },
-  sideleg: { p: ['glutes'], s: ['obliques', 'quads'] },
+  steptouch: { p: ['quads', 'abductors'], s: ['adductors', 'calves'] },
+  sideleg: { p: ['abductors'], s: [] },
   sidecrunch: { p: ['obliques'], s: ['hipFlexors', 'abs'] },
-  hula: { p: ['obliques', 'abs'], s: ['quads'] },
-  sidelunge: { p: ['quads', 'adductors'], s: ['glutes', 'calves'] },
+  hula: { p: ['obliques'], s: ['abs'] },
+  sidelunge: { p: ['quads', 'glutes'], s: ['adductors'] },
   skihop: { p: ['calves', 'quads'], s: ['adductors', 'abs'] },
-  sidebend: { p: ['obliques', 'lats'], s: ['abs'] },
+  sidebend: { p: ['obliques'], s: [] },
 }
 
 export const targetLabels = (t: Targets) => ({

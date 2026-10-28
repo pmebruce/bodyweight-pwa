@@ -1538,6 +1538,7 @@ var MUSCLE_LABEL = {
   lats: "\u80CC\u95CA\u808C",
   lowerBack: "\u4E0B\u80CC",
   glutes: "\u81C0\u808C",
+  abductors: "\u81C0\u5074\u808C\u7FA4",
   quads: "\u80A1\u56DB\u982D\u808C",
   hipFlexors: "\u9AD6\u5C48\u808C",
   adductors: "\u5927\u817F\u5167\u5074",
@@ -1566,20 +1567,20 @@ var TARGETS = {
   jack: { p: ["delts", "calves"], s: ["quads", "adductors"] },
   highknees: { p: ["hipFlexors", "quads"], s: ["calves", "abs"] },
   // 瘦身操
-  march: { p: ["hipFlexors", "quads"], s: ["calves", "abs"] },
+  march: { p: ["hipFlexors"], s: ["quads", "calves"] },
   buttkick: { p: ["hamstrings", "calves"], s: ["glutes", "hipFlexors"] },
   kickclap: { p: ["hipFlexors", "quads"], s: ["abs", "delts"] },
   punch: { p: ["frontDelt", "triceps"], s: ["obliques", "abs"] },
-  uppercut: { p: ["biceps", "frontDelt"], s: ["obliques", "quads"] },
-  armcircle: { p: ["delts", "frontDelt", "rearDelt"], s: ["traps"] },
+  uppercut: { p: ["frontDelt", "obliques"], s: ["biceps", "quads"] },
+  armcircle: { p: ["delts"], s: ["traps"] },
   stepjack: { p: ["delts", "adductors"], s: ["quads", "calves"] },
-  steptouch: { p: ["quads", "adductors"], s: ["calves", "chest"] },
-  sideleg: { p: ["glutes"], s: ["obliques", "quads"] },
+  steptouch: { p: ["quads", "abductors"], s: ["adductors", "calves"] },
+  sideleg: { p: ["abductors"], s: [] },
   sidecrunch: { p: ["obliques"], s: ["hipFlexors", "abs"] },
-  hula: { p: ["obliques", "abs"], s: ["quads"] },
-  sidelunge: { p: ["quads", "adductors"], s: ["glutes", "calves"] },
+  hula: { p: ["obliques"], s: ["abs"] },
+  sidelunge: { p: ["quads", "glutes"], s: ["adductors"] },
   skihop: { p: ["calves", "quads"], s: ["adductors", "abs"] },
-  sidebend: { p: ["obliques", "lats"], s: ["abs"] }
+  sidebend: { p: ["obliques"], s: [] }
 };
 var targetLabels = (t) => ({
   p: t.p.map((m) => MUSCLE_LABEL[m]),

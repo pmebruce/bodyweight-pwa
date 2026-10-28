@@ -296,21 +296,24 @@ export function createNaturalRig(model){
       const quads=thigh.weight>.48&&p.y>.53&&p.y<.96&&p.z>thigh.z+.012;
       const hamstrings=thigh.weight>.48&&p.y>.56&&p.y<.92&&p.z<thigh.z-.012;
       const glutes=p.y>.83&&p.y<1.05&&Math.abs(p.x)<.22&&p.z<-.045;
+      const abductors=p.y>.90&&p.y<1.07&&Math.abs(p.x)>.12&&Math.abs(p.x)<.26&&p.z>-.14&&p.z<.07&&(thigh.weight+segment(sample,/^(pelvis|spine_01)$/).weight)>.65;
       const calves=calf.weight>.5&&p.y>.14&&p.y<.48&&p.z<calf.z+.015;
       const adductors=thigh.weight>.48&&p.y>.59&&p.y<.9&&Math.abs(p.x)<Math.abs(thigh.x)-.025;
-      const chest=p.y>1.26&&p.y<1.46&&Math.abs(p.x)<.19&&p.z>.035;
+      // Trunk masks must belong to the trunk, not an overlapping hand/arm.
+      const trunk=segment(sample,/^(pelvis|spine_0[123])$/).weight>.65;
+      const chest=trunk&&p.y>1.26&&p.y<1.46&&Math.abs(p.x)<.19&&p.z>.035;
       const delts=['Left','Right'].some(side=>p.distanceTo(rest.get(bones[side+'Arm']).wp)<.115);
       const frontDelts=delts&&p.z>.015;
       const triceps=arm.weight>.5&&!delts&&p.z<arm.z-.008;
-      const abs=p.y>1.04&&p.y<1.26&&Math.abs(p.x)<.135&&p.z>.035;
-      const obliques=p.y>1.02&&p.y<1.29&&Math.abs(p.x)>.105&&Math.abs(p.x)<.22&&p.z>-.03;
-      const lats=p.y>1.10&&p.y<1.43&&Math.abs(p.x)>.075&&p.z<-.035;
-      const lowerBack=p.y>.96&&p.y<1.19&&Math.abs(p.x)<.145&&p.z<-.04;
-      const traps=p.y>1.40&&p.y<1.55&&Math.abs(p.x)<.175&&p.z<.01;
+      const abs=trunk&&p.y>1.04&&p.y<1.26&&Math.abs(p.x)<.135&&p.z>.035;
+      const obliques=trunk&&p.y>1.02&&p.y<1.29&&Math.abs(p.x)>.105&&Math.abs(p.x)<.22&&p.z>-.03;
+      const lats=trunk&&p.y>1.10&&p.y<1.43&&Math.abs(p.x)>.075&&p.z<-.035;
+      const lowerBack=trunk&&p.y>.96&&p.y<1.19&&Math.abs(p.x)<.145&&p.z<-.04;
+      const traps=trunk&&p.y>1.40&&p.y<1.55&&Math.abs(p.x)<.175&&p.z<.01;
       const rearDelt=delts&&p.z<.005,biceps=arm.weight>.5&&!delts&&p.z>arm.z+.008;
       const forearm=segment(sample,/^lowerarm_/).weight>.55;
-      const hipFlexors=p.y>.86&&p.y<1.02&&Math.abs(p.x)<.19&&p.z>.02;
-      const regions={quads,hamstrings,glutes,calves,adductors,chest,delts,frontDelt:frontDelts,triceps,abs,obliques,lats,lowerBack,traps,rearDelt,biceps,forearm,hipFlexors};
+      const hipFlexors=trunk&&p.y>.86&&p.y<1.02&&Math.abs(p.x)<.19&&p.z>.02;
+      const regions={quads,hamstrings,glutes,abductors,calves,adductors,chest,delts,frontDelt:frontDelts,triceps,abs,obliques,lats,lowerBack,traps,rearDelt,biceps,forearm,hipFlexors};
       skin.toArray(plain,i*3);for(const [name,meta] of Object.entries(MOTIONS)){const main=meta.targets.p.some(key=>regions[key]),assist=meta.targets.s.some(key=>regions[key]);(main?primary:assist?secondary:skin).toArray(profiles[name],i*3);}
     }
     o.userData.muscleProfiles=profiles;o.userData.plainColors=plain;o.geometry.setAttribute('color',new T.BufferAttribute(plain.slice(),3));
