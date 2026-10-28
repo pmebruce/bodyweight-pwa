@@ -276,12 +276,18 @@ export function createNaturalRig(model){
       const root=V(-kickSide*.040*shift,y0-.022*shift-.018*k,-.01*k);rootAt(root,up);torso(up,V(0,1,.12*ka).normalize());
       for(const f of feet){
         const G=V(f.s*stance,.074,-.048);
-        if(f.s!==kickSide){f.target.copy(G);solve(f,f.target,V(f.s*.15,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.12).multiply(f.footQ));continue;}
+        if(f.s!==kickSide){f.target.copy(G);solve(f,f.target,V(f.s*.15,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);continue;}// standing foot flat and straight
         const H=world(f.upper),Lm=f.L1+f.L2,th=1.30*k,reach=Lm*(.985-.07*Math.sin(Math.PI*k));
         const K=H.clone().add(V(f.s*.02*k,-Math.cos(th)*reach,Math.sin(th)*reach));
         const lift=ss(k*4);f.target.copy(G).lerp(K,lift);f.target.y=Math.max(f.target.y,.074);
         solve(f,f.target,V(0,.15,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');
-        rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),.55*k).multiply(new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.12)).multiply(f.footQ));
+        // Ankle follows the shin (rest foot-to-shin angle kept), relaxing into ~12° of plantarflexion at the top;
+        // blended from the flat floor pose as the foot peels off so it never twists or bends back through the shin.
+        model.updateMatrixWorld(true);
+        const restShin=rest.get(f.foot).wp.clone().sub(rest.get(f.lower).wp).normalize(),shin=world(f.foot).sub(world(f.lower)).normalize();
+        const follow=new T.Quaternion().setFromUnitVectors(restShin,shin),lateral=V(1,0,0);
+        const relaxed=new T.Quaternion().setFromAxisAngle(lateral,-.30*k).multiply(follow).multiply(f.footQ);
+        rotateWorld(f.foot,f.footQ.clone().slerp(relaxed,ss(k*2.5)));
       }
       model.updateMatrixWorld(true);
       const kf=feet.find(f=>f.s===kickSide),H=world(kf.upper),Kn=world(kf.lower),Ft=world(kf.foot);
