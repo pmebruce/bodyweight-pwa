@@ -265,7 +265,7 @@ const DEMO_HAND: Partial<Record<DemoKey, Hand>> = {
 }
 
 export const DEMOS: Record<DemoKey, Demo> = {
-  squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [950, 850], still: 1 },
+  squat: { view: view(108, 170), keys: [STAND, SQUAT], dur: [1100, 850], still: 1 },
 
   pushup: {
     view: view(90.6),
@@ -273,7 +273,7 @@ export const DEMOS: Record<DemoKey, Demo> = {
       plankHigh(120),
       k([93.5, 112.4], 94.5, { armN: palm(120), armF: palm(117), legN: toes(43.5, 114.6), legF: toes(42, 114.6) }, { n: 6 }),
     ],
-    dur: [850, 750],
+    dur: [1050, 780],
   },
 
   diamond: {
@@ -282,7 +282,7 @@ export const DEMOS: Record<DemoKey, Demo> = {
       k([92, 100.4], 108, { armN: palm(115), armF: palm(113), legN: toes(43.5, 114.6), legF: toes(42, 114.6) }, { n: 4 }),
       k([95, 112.6], 94.5, { armN: palm(115), armF: palm(113), legN: toes(43.5, 114.6), legF: toes(42, 114.6) }, { n: 6 }),
     ],
-    dur: [950, 800],
+    dur: [1150, 850],
   },
 
   lunge: {
@@ -400,7 +400,7 @@ export const DEMOS: Record<DemoKey, Demo> = {
       k([82, 91], 179, { armN: { t: [73.5, 93.6], e: 90 }, armF: { t: [71, 93.6], e: 90 }, legN: flat(122), legF: flat(119) }, { n: 0 }),
       k([81.5, 106.5], 176, { armN: { t: [73.5, 93.6], e: 90 }, armF: { t: [71, 93.6], e: 90 }, legN: flat(122), legF: flat(119) }, { n: 2 }),
     ],
-    dur: [900, 800],
+    dur: [1050, 800],
     still: 1,
   },
 
@@ -413,6 +413,9 @@ export const DEMOS: Record<DemoKey, Demo> = {
       k([99, 65.2], 178, { armN: fk(48, 92), armF: fk(-38, 95), legN: fk(-3, 6, 52), legF: fk(92, 104, 112) }, { n: 0 }),
     ],
     dur: 150,
+    smooth: true,
+    lag: 0.03,
+    headLag: 0.02,
     still: 1,
   },
 
@@ -499,6 +502,9 @@ export const DEMOS: Record<DemoKey, Demo> = {
       k([98, 70.2], 178, { armN: fk(38, 92), armF: fk(-28, 92), legN: flat(100), legF: fk(4, 158) }, { n: 0, hop: 2.2 }),
     ],
     dur: 210,
+    smooth: true,
+    lag: 0.03,
+    headLag: 0.02,
     still: 1,
   },
 
@@ -512,6 +518,7 @@ export const DEMOS: Record<DemoKey, Demo> = {
       k([95, 72.6], 177, { armN: fk(44, 4), armF: fk(40, 4), legN: flat(98), legF: fk(78, 2) }, { n: 4, ease: 'out' }),
     ],
     dur: [420, 380, 420, 380],
+    lag: 0.025,
     still: 1,
   },
 
