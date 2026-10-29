@@ -158,13 +158,20 @@ export function createNaturalRig(model){
   }
   // Both hands on one dumbbell: goblet at the chest, triceps extension overhead, bridge on the hip bones.
   function sharedGrip(){
-    const mid=exercise==='dbbridge'?world(bones.Hips).add(V(0,.15,0)).add(world(bones.Spine).sub(world(bones.Hips)).normalize().multiplyScalar(.02)):world(hands[0].end).add(world(hands[1].end)).multiplyScalar(.5);
+    const mid=exercise==='dbbridge'?world(bones.Hips).add(V(0,.15,0)):world(hands[0].end).add(world(hands[1].end)).multiplyScalar(.5);
     for(const h of hands){
-      h.target.copy(mid).add(V(h.s*.055,0,0));solve(h,h.target,V(h.s,-.25,exercise==='dbtricep'?.35:-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
-      const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0);
-      orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm);
+      h.target.copy(mid).add(V(h.s*.045,0,0));solve(h,h.target,V(-h.s*.35,-1,exercise==='dbtricep'?.35:-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
     }
+    const finger=hands.reduce((v,h)=>v.add(world(h.end).sub(world(h.lower)).normalize()),V());finger.x=0;finger.normalize();
+    const palm=finger.clone().cross(V(1,0,0)).normalize();
+    for(const h of hands){const fore=world(h.end).sub(world(h.lower)).normalize();orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);closeFist(h,palm);}
   }
+  function getSharedGrip(){
+    if(!['dbgoblet','dbtricep','dbbridge'].includes(exercise))return null;
+    const centers=hands.map(h=>{const wrist=world(h.end),finger=world(bones[h.side+'HandMiddle1']).sub(wrist).normalize(),palm=finger.clone().cross(V(1,0,0)).normalize();return wrist.addScaledVector(finger,.09).addScaledVector(palm,.015);});
+    return {center:centers[0].clone().add(centers[1]).multiplyScalar(.5),contacts:centers,axis:V(1,0,0)};
+  }
+
   // One guide per complete cycle avoids a roll flip near an aim-axis singularity.
   function handGuides(){
     if(handGuideCache.has(exercise))return handGuideCache.get(exercise);
@@ -184,6 +191,15 @@ export function createNaturalRig(model){
     if(exercise==='kickclap'){kickClap(t);return;}
     if(exercise==='sidelunge'){chestHandsTogether(direction(f,f.axis));return;}
     if(['dbgoblet','dbtricep','dbbridge'].includes(exercise)){sharedGrip();return;}
+    if(exercise==='dbrenegade'){
+      for(const h of hands){
+        const target=world(h.end),support=1-T.MathUtils.smoothstep(target.y,.15,.35);target.y+=.19*support;
+        solve(h,target,V(h.s*.35,0,-1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+        const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0),finger=fore.clone();
+        orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',finger,palm);closeFist(h,palm);
+      }
+      return;
+    }
     for(const h of hands){
       const l=f['arm'+(h.side==='Left'?'N':'F')],fore=world(h.end).sub(world(h.lower)).normalize();resetDigits(h);
       const contact=l.hand==='flat'?T.MathUtils.smoothstep(.36-world(h.end).y,0,.20):0;
@@ -406,5 +422,5 @@ export function createNaturalRig(model){
     }
     o.userData.muscleProfiles=profiles;o.userData.plainColors=plain;o.geometry.setAttribute('color',new T.BufferAttribute(plain.slice(),3));
   });
-  return {pose,feet,hands,meshes,bones,rest,setStance(width){stanceWidth=T.MathUtils.clamp(width,.42,.58);},setExercise(name){if(!MOTIONS[name])throw Error('Unknown exercise: '+name);exercise=name;flipped=false;this.setHighlight(highlighted);},flipSide(){flipped=!flipped;return flipped;},setFault(amount,re){faultAmt=amount;if(re!==undefined&&String(re)!==String(faultRe)){faultRe=re;this.setHighlight(highlighted);}},setHighlight(on){highlighted=on;meshes.forEach(o=>{o.geometry.attributes.color.array.set(on?o.userData.muscleProfiles[exercise]:o.userData.plainColors);if(faultRe)tintFault(o);o.geometry.attributes.color.needsUpdate=true;});},setWireframe(on){meshes.forEach(o=>o.material.wireframe=on);}};
+  return {pose,feet,hands,meshes,bones,rest,getSharedGrip,setStance(width){stanceWidth=T.MathUtils.clamp(width,.42,.58);},setExercise(name){if(!MOTIONS[name])throw Error('Unknown exercise: '+name);exercise=name;flipped=false;this.setHighlight(highlighted);},flipSide(){flipped=!flipped;return flipped;},setFault(amount,re){faultAmt=amount;if(re!==undefined&&String(re)!==String(faultRe)){faultRe=re;this.setHighlight(highlighted);}},setHighlight(on){highlighted=on;meshes.forEach(o=>{o.geometry.attributes.color.array.set(on?o.userData.muscleProfiles[exercise]:o.userData.plainColors);if(faultRe)tintFault(o);o.geometry.attributes.color.needsUpdate=true;});},setWireframe(on){meshes.forEach(o=>o.material.wireframe=on);}};
 }

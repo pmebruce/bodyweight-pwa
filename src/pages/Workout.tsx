@@ -15,7 +15,7 @@ import { goBack, navigate } from '../lib/router'
 import { beep, chime, speak, stopSpeaking, unlockMedia, vibrate, WakeLockKeeper } from '../lib/cues'
 import { mmss } from '../lib/format'
 import { planEstimate } from '../lib/stats'
-import { fmtKg, suggestKg } from '../lib/weights'
+import { fmtKg, suggestKg, normalizeKg } from '../lib/weights'
 
 interface WorkStep {
   kind: 'work'
@@ -60,7 +60,7 @@ export default function Workout({ planId }: { planId: string }) {
   const { plans, data, addLog, logWeights } = useStore()
   /** dumbbell kg chosen per exercise (the stepper value) and kg actually used per completed set */
   const [kgSel, setKgSel] = useState<Record<string, number>>({})
-  const kgUsed = useRef(new Map<string, { kg: number[]; reps: number; sets: number }>())
+  const kgUsed = useRef(new Map<string, { kg: number[]; actual: number[]; reps: number; sets: number }>())
   const kgFor = (id: string) => kgSel[id] ?? suggestKg(data.weights, id).kg
   const settings = data.settings
   const plan = useMemo(() => resolvePlan(planId, plans, settings), [planId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -164,8 +164,9 @@ export default function Workout({ planId }: { planId: string }) {
       if (kgUsed.current.size) {
         const at = Date.now(), out: Record<string, WeightEntry> = {}
         kgUsed.current.forEach((v, id) => {
-          const kg = v.kg.filter((x) => x !== undefined)
-          if (kg.length) out[id] = { at, kg, reps: v.reps, done: kg.length >= v.sets }
+          const indices=v.kg.map((_,i)=>i).filter(i=>v.kg[i]!==undefined)
+          const kg=indices.map(i=>v.kg[i]),setReps=indices.map(i=>v.actual[i]??0)
+          if (kg.length) out[id] = { at, kg, setReps, reps: v.reps, done: kg.length >= v.sets && setReps.every(n=>n>=v.reps) }
         })
         logWeights(out)
         kgUsed.current.clear()
@@ -191,14 +192,15 @@ export default function Workout({ planId }: { planId: string }) {
     else enterStep(idx + 1, 1)
   }, [idx, steps.length, finish, enterStep])
 
-  const completeWork = useCallback(() => {
+  const completeWork = useCallback((actual?: number) => {
     const s = steps[idx]
     if (s?.kind === 'work') {
       const secs = s.seconds ?? (Date.now() - stepStart.current) / 1000
-      results.current.set(idx, { exerciseId: s.ex.id, seconds: Math.min(secs, s.seconds ?? 600), reps: s.reps ?? 0 })
+      results.current.set(idx, { exerciseId: s.ex.id, seconds: Math.min(secs, s.seconds ?? 600), reps: s.reps ? (actual ?? s.reps) : 0 })
       if (s.ex.cat === 'db') {
-        const u = kgUsed.current.get(s.ex.id) ?? { kg: [], reps: s.reps ?? s.seconds ?? 0, sets: s.sets }
+        const u = kgUsed.current.get(s.ex.id) ?? { kg: [], actual: [], reps: s.reps ?? s.seconds ?? 0, sets: s.sets }
         u.kg[s.set - 1] = kgFor(s.ex.id)
+        u.actual[s.set - 1] = actual ?? s.reps ?? s.seconds ?? 0
         kgUsed.current.set(s.ex.id, u)
       }
     }
@@ -504,7 +506,7 @@ interface KgCtl {
 /** dumbbell weight stepper (kg per dumbbell) with last-time / suggestion line */
 function KgStepper({ kg }: { kg: KgCtl }) {
   const { value, hint, set } = kg
-  const step = (d: number) => set(Math.max(0, Math.min(60, Math.round((value + d) * 2) / 2)))
+  const step = (d: number) => set(normalizeKg(value+d))
   return (
     <div className="wk-kg">
       <div className="wk-kg-row">
@@ -513,15 +515,17 @@ function KgStepper({ kg }: { kg: KgCtl }) {
         <motion.button whileTap={{ scale: 0.85 }} className="wk-kg-btn" onClick={() => step(value >= 10 ? 2 : 1)} aria-label="增加重量">＋</motion.button>
       </div>
       <p className="wk-kg-hint">
-        {hint.last ? `上次 ${fmtKg(Math.max(...hint.last.kg))}${hint.last.done ? ' ✓ 全部完成' : '（未全部完成）'}・建議 ${fmtKg(hint.kg)}${hint.up ? ' ↑' : ''}` : `第一次做：建議從 ${fmtKg(hint.kg)} 開始（每顆）`}
+        {hint.last ? `上次 ${fmtKg(Math.max(...hint.last.kg))}${hint.last.done ? ' ✓ 全部完成' : '（未全部完成）'}・建議 ${fmtKg(hint.kg)}${hint.up ? ' ↑' : ''}` : `起始參考 ${fmtKg(hint.kg)}，請依能力調整（每顆）`}
       </p>
     </div>
   )
 }
 
-function WorkView({ step, leftMs, frac, onComplete, paused, kg }: { step: WorkStep; leftMs: number; frac: number; onComplete: () => void; paused: boolean; kg?: KgCtl }) {
+function WorkView({ step, leftMs, frac, onComplete, paused, kg }: { step: WorkStep; leftMs: number; frac: number; onComplete: (actual?: number) => void; paused: boolean; kg?: KgCtl }) {
   const sec = Math.ceil(leftMs / 1000)
   const [tapped, setTapped] = useState(false)
+  const [actual,setActual]=useState<number|null>(null)
+  useEffect(()=>{setActual(null);setTapped(false)},[step.ex.id,step.set,step.reps])
   const size = useRingSize(210)
   return (
     <>
@@ -532,7 +536,7 @@ function WorkView({ step, leftMs, frac, onComplete, paused, kg }: { step: WorkSt
       <div className="wk-fig">
         <ExerciseDemo key={step.ex.demo} demo={step.ex.demo} playing={!paused} compact kg={kg?.value} />
       </div>
-      {kg && <KgStepper kg={kg} />}
+      {kg && <><KgStepper kg={kg} /><p className="wk-kg-hint">器材外觀為示意；重量以數字為準。0 kg 為徒手。</p>{!step.seconds&&<label className="wk-actual">這組實際完成 <input aria-label="這組實際完成次數" type="number" inputMode="numeric" min="0" max="200" value={actual??''} placeholder="填次數" onChange={e=>setActual(e.target.value===''?null:Math.max(0,Math.min(200,Math.floor(Number(e.target.value)||0))))}/> 下</label>}</>}
       {step.seconds ? (
         <Ring progress={1 - frac} size={size} id="ring-work">
           <BigNumber value={sec} urgent={sec <= 3} />
@@ -541,11 +545,12 @@ function WorkView({ step, leftMs, frac, onComplete, paused, kg }: { step: WorkSt
       ) : (
         <motion.button
           className="wk-rep-btn"
+          disabled={!!kg&&actual===null}
           whileTap={{ scale: 0.93 }}
           onClick={() => {
             if (tapped) return
             setTapped(true)
-            setTimeout(onComplete, 380)
+            setTimeout(()=>onComplete(kg?(actual??0):undefined), 380)
           }}
           aria-label="完成這組"
         >

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {buildSync} from 'esbuild';
+const {outputFiles}=buildSync({entryPoints:['src/lib/weights.ts'],bundle:true,platform:'node',format:'esm',write:false});
+const {suggestKg,normalizeKg}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
+const run=e=>suggestKg({dbcurl:[{at:1,reps:12,done:true,...e}]},'dbcurl');
+assert.equal(run({kg:[8,6,6],setReps:[12,12,12]}).kg,6);
+assert.equal(run({kg:[8,8,8],setReps:[12,12,12]}).kg,9);
+assert.equal(run({kg:[8,8,8],setReps:[12,10,12]}).kg,8);
+assert.equal(run({kg:[8,8,8]}).up,false);
+assert.equal(run({kg:[60,60],setReps:[12,12]}).kg,60);
+assert.equal(run({kg:[0,0],setReps:[12,12]}).kg,0);
+assert.equal(run({kg:[8,8],setReps:'12'}).up,false);
+assert.equal(normalizeKg(0),0);assert.equal(normalizeKg(90),60);assert.equal(normalizeKg(NaN),8);
+console.log('Weight progression: 10 cases passed');

@@ -93,6 +93,8 @@ export interface AppData {
 
 /** one logged dumbbell exercise: kg per set (per hand) and whether every target rep was completed */
 export interface WeightEntry {
+  /** Actual repetitions (or seconds for timed holds), aligned with kg. Absent on legacy entries. */
+  setReps?: number[]
   at: number
   kg: number[]
   reps: number
