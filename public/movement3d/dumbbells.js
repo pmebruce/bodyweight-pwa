@@ -36,7 +36,7 @@ export function attachDumbbells(rig,model,mode,exercise,kg){
 
 function outShared(db,rig,model){
   const frame=rig.getSharedGrip();if(!frame)return;
-  model.updateMatrixWorld(true);const matrix=new T.Matrix4().compose(frame.center,new T.Quaternion(),new T.Vector3(1,1,1));
+  model.updateMatrixWorld(true);const matrix=new T.Matrix4().compose(frame.center,new T.Quaternion().setFromUnitVectors(new T.Vector3(1,0,0),frame.axis),new T.Vector3(1,1,1));
   matrix.premultiply(db.parent.matrixWorld.clone().invert());matrix.decompose(db.position,db.quaternion,db.scale);db.updateMatrixWorld(true);
 }
 export function updateDumbbells(list,rig,model){for(const db of list)if(db.userData.shared)outShared(db,rig,model);}

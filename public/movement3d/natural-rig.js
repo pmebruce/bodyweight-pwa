@@ -158,6 +158,16 @@ export function createNaturalRig(model){
   }
   // Both hands on one dumbbell: goblet at the chest, triceps extension overhead, bridge on the hip bones.
   function sharedGrip(){
+    if(exercise==='dbgoblet'){
+      const chest=world(bones.Spine2),up=world(bones.Neck).sub(chest).normalize(),forward=V(1,0,0).cross(up).normalize();
+      for(const h of hands){
+        h.target.copy(chest).addScaledVector(up,.155).addScaledVector(forward,.25).add(V(h.s*.085,0,0));
+        solve(h,h.target,V(h.s*.65,-1,.12),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+        const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s*.45,.8,.2).normalize();
+        orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm,.55);
+      }
+      return;
+    }
     const mid=exercise==='dbbridge'?world(bones.Hips).add(V(0,.15,0)):world(hands[0].end).add(world(hands[1].end)).multiplyScalar(.5);
     for(const h of hands){
       h.target.copy(mid).add(V(h.s*.045,0,0));solve(h,h.target,V(-h.s*.35,-1,exercise==='dbtricep'?.35:-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
@@ -168,6 +178,10 @@ export function createNaturalRig(model){
   }
   function getSharedGrip(){
     if(!['dbgoblet','dbtricep','dbbridge'].includes(exercise))return null;
+    if(exercise==='dbgoblet'){
+      const contacts=hands.map(h=>{const wrist=world(h.end),finger=world(bones[h.side+'HandMiddle1']).sub(wrist).normalize();return wrist.addScaledVector(finger,.08);});
+      return {center:contacts[0].clone().add(contacts[1]).multiplyScalar(.5).add(V(0,-.074,0)),contacts,axis:V(0,1,0),cup:true};
+    }
     const centers=hands.map(h=>{const wrist=world(h.end),finger=world(bones[h.side+'HandMiddle1']).sub(wrist).normalize(),palm=finger.clone().cross(V(1,0,0)).normalize();return wrist.addScaledVector(finger,.09).addScaledVector(palm,.015);});
     return {center:centers[0].clone().add(centers[1]).multiplyScalar(.5),contacts:centers,axis:V(1,0,0)};
   }

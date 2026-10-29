@@ -13,7 +13,7 @@ for(const [name,meta] of Object.entries(MOTIONS).filter(([,m])=>m.db)){
   setDumbbellKg(gear,60);const fitted=new T.Box3();
   if(kg===60){for(let i=0;i<40;i++){rig.pose(i/40);updateDumbbells(gear,rig,body);fitted.union(new T.Box3().setFromObject(body,true));}fitted.expandByScalar(.08);}
   setDumbbellKg(gear,kg);let minY=Infinity,maxContactError=0;const bounds=new T.Box3();
-  for(let i=0;i<64;i++){rig.pose(i/64);updateDumbbells(gear,rig,body);body.updateMatrixWorld(true);
+  for(let i=0;i<64;i++){rig.pose(i/64);if(name==='dbgoblet')for(const h of rig.hands){const e=h.lower.getWorldPosition(new T.Vector3()),chest=rig.bones.Spine2.getWorldPosition(new T.Vector3());assert(h.s*(e.x-chest.x)>.13,'Goblet elbows must remain outside the ribs');assert(e.y<h.end.getWorldPosition(new T.Vector3()).y,'Goblet elbows must point down');}updateDumbbells(gear,rig,body);body.updateMatrixWorld(true);
    for(const db of gear){assert(db.visible===(kg>0));assert(db.matrixWorld.elements.every(Number.isFinite));const box=new T.Box3().setFromObject(db,true);minY=Math.min(minY,box.min.y);bounds.union(box);
     if(kg===60){assert(fitted.containsBox(box),name+' gear escapes sampled camera bounds');
      for(const preset of Object.values(cameraPresets(name)))for(const aspect of [.5,1,1.6]){
@@ -22,7 +22,7 @@ for(const [name,meta] of Object.entries(MOTIONS).filter(([,m])=>m.db)){
       for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z]){const p=new T.Vector3(x,y,z).project(camera);assert(Math.abs(p.x)<1&&Math.abs(p.y)<1,name+' dumbbell cropped');}
      }
     }
-    if(db.userData.shared){const frame=rig.getSharedGrip(),center=db.getWorldPosition(new T.Vector3());assert(center.distanceTo(frame.center)<1e-5);for(const p of frame.contacts){const offset=p.clone().sub(center);maxContactError=Math.max(maxContactError,Math.hypot(offset.y,offset.z));assert(Math.abs(offset.x)<.075,'Contact must stay on the handle');}}
+    if(db.userData.shared){const frame=rig.getSharedGrip(),center=db.getWorldPosition(new T.Vector3());assert(center.distanceTo(frame.center)<1e-5);for(const p of frame.contacts){const offset=p.clone().sub(center);if(frame.cup){maxContactError=Math.max(maxContactError,Math.abs(offset.y-.074));assert(Math.hypot(offset.x,offset.z)<plateSize(kg).r+.035,'Hands must cup the upper plate');assert(new T.Vector3(1,0,0).applyQuaternion(db.getWorldQuaternion(new T.Quaternion())).dot(new T.Vector3(0,1,0))>.999,'Goblet dumbbell must stay vertical');}else{maxContactError=Math.max(maxContactError,Math.hypot(offset.y,offset.z));assert(Math.abs(offset.x)<.075,'Contact must stay on the handle');}}}
    }
   }
   if(kg>0)assert(minY>-.006,name+' dumbbell enters floor: '+minY);

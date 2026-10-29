@@ -22,12 +22,12 @@ const floor=new T.Mesh(new T.PlaneGeometry(200,200),new T.MeshStandardMaterial({
 const presets=cameraPresets(exercise),boundsCache=new Map();
 function view(){
   needsRender=true;const {yaw,pitch}=presets[angle],target=bounds.getCenter(new T.Vector3()),size=bounds.getSize(new T.Vector3());
-  const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),usable=T.MathUtils.clamp((h-90)/h,.54,.86);
+  const w=Math.max(1,$('viewport').clientWidth),h=Math.max(1,$('viewport').clientHeight),usable=T.MathUtils.clamp((h-90)/h,.54,.86);
   camera.aspect=w/h;camera.updateProjectionMatrix();const distance=cameraDistance(size,yaw,pitch,camera.aspect,usable);
   camera.position.copy(target).add(new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*distance,Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance));camera.lookAt(target);
   document.querySelectorAll('[data-angle]').forEach(b=>{b.textContent=presets[b.dataset.angle].label;b.setAttribute('aria-pressed',String(b.dataset.angle===angle));});
 }
-const resize=new ResizeObserver(()=>{renderer.setSize(innerWidth,innerHeight,false);view();});resize.observe(document.body);
+const resize=new ResizeObserver(()=>{renderer.setSize($('viewport').clientWidth,$('viewport').clientHeight,false);view();});resize.observe($('viewport'));
 document.querySelectorAll('[data-angle]').forEach(b=>b.onclick=()=>{angle=b.dataset.angle;view();});$('muscle').onclick=()=>{highlighted=!highlighted;$('muscle').setAttribute('aria-pressed',String(highlighted));rig?.setHighlight(highlighted);needsRender=true;};
 addEventListener('message',e=>{if(e.source!==parent||e.origin!==location.origin||e.data?.type!=='movement3d-control')return;playing=!!e.data.playing;if([.5,.75,1,2].includes(e.data.speed))speed=e.data.speed;if(typeof e.data.kg==='number'&&Number.isFinite(e.data.kg)&&normalizeKg(e.data.kg)!==kg){kg=normalizeKg(e.data.kg);if(dumbbells.length){setDumbbellKg(dumbbells,kg);rig.pose(time);updateDumbbells(dumbbells,rig,bodyModel);view();needsRender=true;}}});
 renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();fail('WebGL context lost');});
@@ -49,7 +49,7 @@ if(phases&&params.get('hud')!=='0'){
   $('tempo').textContent=`節奏 ${L(sec('ecc'))}-${L(sec('hold'))}-${L(sec('con'))}（下-停-上 秒）`;
   const bar=$('phasebar');let t0=0;for(const p of phases){if(p.a>t0+1e-3){const r=document.createElement('s');r.className='rest';r.style.width=(p.a-t0)*100+'%';bar.insertBefore(r,$('phasedot'));}const s=document.createElement('s');s.className=p.k;s.style.width=(p.b-p.a)*100+'%';bar.insertBefore(s,$('phasedot'));t0=p.b;}
   if(t0<1){const r=document.createElement('s');r.className='rest';r.style.width=(1-t0)*100+'%';bar.insertBefore(r,$('phasedot'));}
-  hud.hidden=false;
+  hud.hidden=false;document.body.classList.add('has-hud');
 }
 function updateHud(){if(!phases||hud.hidden)return;const p=phases.find(p=>time>=p.a&&time<p.b),k=p?p.k:'rest';$('phasedot').style.left=`calc(${(time*100).toFixed(2)}% - 1px)`;if(k!==hudKey){hudKey=k;const b=$('breath');b.className=k;b.textContent=k==='con'?'吐氣 ↑ 用力':k==='ecc'?'吸氣 ↓ 控制':k==='hold'?'停一下':'準備';}}
 // 常見錯誤 mode: one loop of the wrong form (faulty part tinted yellow) then one loop of the correct form, repeating.
