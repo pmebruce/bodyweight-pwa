@@ -530,7 +530,7 @@ function WorkView({ step, leftMs, frac, onComplete, paused, kg }: { step: WorkSt
       </div>
       <h1 className="wk-name">{step.ex.name}</h1>
       <div className="wk-fig">
-        <ExerciseDemo key={step.ex.demo} demo={step.ex.demo} playing={!paused} compact />
+        <ExerciseDemo key={step.ex.demo} demo={step.ex.demo} playing={!paused} compact kg={kg?.value} />
       </div>
       {kg && <KgStepper kg={kg} />}
       {step.seconds ? (

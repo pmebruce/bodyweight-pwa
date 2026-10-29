@@ -23,7 +23,7 @@ export default function ExerciseDetail({ id }: { id: string }) {
     <div className="page with-cta">
       <PageHeader title={ex.name} subtitle={ex.en} back="/library" />
       <motion.div className="demo-stage" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 26 }}>
-        <ExerciseDemo key={ex.demo} demo={ex.demo} speed={speed} />
+        <ExerciseDemo key={ex.demo} demo={ex.demo} speed={speed} kg={ex.cat === 'db' ? suggestKg(data.weights, ex.id).kg : undefined} />
         <button className="speed-btn" onClick={() => setSi((i) => (i + 1) % SPEEDS.length)} aria-label={`播放速度 ${speed} 倍，點一下切換`}>
           {speed}× 速度
         </button>
