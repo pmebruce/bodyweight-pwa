@@ -277,8 +277,8 @@ export const EXERCISES: Exercise[] = [
   {
     id: 'dbfarmer', name: '啞鈴農夫走路', en: "Farmer's Carry", group: '全身', muscles: ['前臂', '斜方肌', '核心'],
     difficulty: 1, type: 'time', defaultSeconds: 40, kcalPerMin: 6, demo: 'dbfarmer', cat: 'db', quiet: true,
-    steps: ['雙手各提一個較重的啞鈴垂在身側', '挺胸、肩膀往後下沉', '小步原地踏步或來回走', '保持身體不歪不晃，維持指定時間'],
-    tip: '練握力與核心的好動作；空間小就原地踏步，握不住就休息。',
+    steps: ['雙手各提一個握得穩的啞鈴，手臂自然垂在身側', '站直、收緊核心，肩膀保持自然穩定', '用小步向前走，轉身時分幾步調整方向再返回', '保持身體穩定，避免提肩、左右歪斜或甩動啞鈴'],
+    tip: '選擇平坦、無障礙的短距離來回走；空間不足可改做站立負重持握，握不住就先放下休息。',
   },
   {
     id: 'dbcalf', name: '啞鈴提踵', en: 'Calf Raise', group: '下肢', muscles: ['小腿'],

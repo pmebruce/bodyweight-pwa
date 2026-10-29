@@ -818,7 +818,7 @@ export const DEMOS: Record<DemoKey, Demo> = {
     ],
     dur: [700, 900, 700, 900], still: 1,
   },
-  // farmer's carry in place: tall, small steps, arms long and still
+  // Legacy projected thumbnail keys; the 3D rig supplies an anchored walking-and-turning cycle.
   dbfarmer: {
     view: view(102, 170), db: 'pair', smooth: true,
     keys: [
