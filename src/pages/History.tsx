@@ -9,6 +9,7 @@ import CountUp from '../components/CountUp'
 import Icon from '../components/Icon'
 import ExerciseFigure from '../components/ExerciseFigure'
 import { navigate } from '../lib/router'
+import { DumbbellProgress, WeeklyBars } from '../components/Charts'
 
 export default function History() {
   const { data, deleteLog } = useStore()
@@ -46,6 +47,9 @@ export default function History() {
           </motion.div>
         ))}
       </div>
+
+      <WeeklyBars history={data.history} />
+      <DumbbellProgress weights={data.weights} />
 
       <motion.div className="card chart-card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
         <div className="chart-head">

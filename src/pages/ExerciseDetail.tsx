@@ -8,6 +8,7 @@ import { navigate } from '../lib/router'
 import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { fmtKg, suggestKg } from '../lib/weights'
+import { WeightLine } from '../components/Charts'
 
 /** demo playback speeds, cycled by the speed chip */
 const SPEEDS = [1, 2, 0.75, 0.5] as const
@@ -104,6 +105,7 @@ function WeightHistory({ id, weights }: { id: string; weights: Parameters<typeof
     <div className="weight-card">
       <h2 className="section-title">重量紀錄</h2>
       <p className="weight-next">下次建議 <b>{fmtKg(sug.kg)}</b>（每顆）{sug.up ? '：上次全部完成，加一點重量 ↑' : sug.last ? '：先把這個重量全部做完再加重' : '：第一次做，先用這個重量找手感'}</p>
+      {list.length > 1 && <WeightLine entries={weights![id]} height={130} />}
       {list.length > 0 && (
         <ul className="weight-list">
           {list.map((e) => (
