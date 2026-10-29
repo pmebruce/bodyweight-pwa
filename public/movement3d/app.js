@@ -30,7 +30,7 @@ document.querySelectorAll('[data-angle]').forEach(b=>b.onclick=()=>{angle=b.data
 addEventListener('message',e=>{if(e.source!==parent||e.origin!==location.origin||e.data?.type!=='movement3d-control')return;playing=!!e.data.playing;if([.5,.75,1,2].includes(e.data.speed))speed=e.data.speed;if(typeof e.data.kg==='number'&&e.data.kg>0&&e.data.kg!==kg){kg=e.data.kg;if(dumbbells.length){setDumbbellKg(dumbbells,kg);needsRender=true;}}});
 renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();fail('WebGL context lost');});
 async function load(){const parts=Array.from({length:10},(_,i)=>`assets/human-${String(i).padStart(2,'0')}.bin`);const chunks=await Promise.all(parts.map(async path=>{const r=await fetch(path);if(!r.ok)throw Error('Model fetch failed');return new Uint8Array(await r.arrayBuffer());}));const bytes=new Uint8Array(chunks.reduce((a,b)=>a+b.length,0));let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}const raw=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer(),gltf=await new GLTFLoader().parseAsync(raw,'');if(disposed)return;const body=new T.Group();body.scale.setScalar(1.8/1.680323797);body.add(gltf.scene);scene.add(body);softenFace(body);createBodyFullness(body).setFull(true);rig=createNaturalRig(body);dumbbells=attachDumbbells(rig,body,meta.db,exercise,kg);rig.setExercise(exercise);rig.setHighlight(highlighted);
- bounds.makeEmpty();for(let i=0;i<20;i++){rig.pose(i/20);for(const b of Object.values(rig.bones))bounds.expandByPoint(b.getWorldPosition(new T.Vector3()));}bounds.expandByScalar(.12);bounds.min.y=Math.min(0,bounds.min.y);if(prop.children.length)bounds.union(new T.Box3().setFromObject(prop));rig.pose(time);lastPose=time;updateHud();view();$("loading").hidden=true;post('movement3d-ready');}
+ bounds.makeEmpty();for(let i=0;i<20;i++){rig.pose(i/20);for(const b of Object.values(rig.bones))bounds.expandByPoint(b.getWorldPosition(new T.Vector3()));}bounds.expandByScalar(.12);bounds.min.y=Math.min(0,bounds.min.y);if(prop.children.length)bounds.union(new T.Box3().setFromObject(prop));if(faultOn)applyFaultState();rig.pose(time);lastPose=time;updateHud();view();$("loading").hidden=true;post('movement3d-ready');}
 load().catch(fail);
 let last=performance.now();const duration=['squat','pushup','lunge'].includes(exercise)?5.6:exercise==='jack'?2.4:exercise==='armcircle'?3:exercise==='punch'?2.4:exercise==='uppercut'?3.2:meta.duration;
 // Breathing + tempo HUD (strength reps only): 吸氣 while lowering, 停 on the pause, 吐氣 on the effort.
@@ -43,5 +43,14 @@ if(phases&&params.get('hud')!=='0'){
   hud.hidden=false;
 }
 function updateHud(){if(!phases||hud.hidden)return;const p=phases.find(p=>time>=p.a&&time<p.b),k=p?p.k:'rest';$('phasedot').style.left=`calc(${(time*100).toFixed(2)}% - 1px)`;if(k!==hudKey){hudKey=k;const b=$('breath');b.className=k;b.textContent=k==='con'?'吐氣 ↑ 用力':k==='ecc'?'吸氣 ↓ 控制':k==='hold'?'停一下':'準備';}}
-function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden){if(playing&&rig)time=(time+dt*speed/duration)%1;if(rig&&lastPose!==time){rig.pose(time);lastPose=time;needsRender=true;updateHud();}if(needsRender){renderer.render(scene,camera);needsRender=false;}}raf=requestAnimationFrame(frame);}view();raf=requestAnimationFrame(frame);
+// 常見錯誤 mode: one loop of the wrong form (faulty part tinted yellow) then one loop of the correct form, repeating.
+const fault=meta.fault;let faultOn=params.get('fault')==='1',faultLoop=0,prevTime=time;
+if(fault){$('fault').hidden=false;$('fault').onclick=()=>{faultOn=!faultOn;faultLoop=0;applyFaultState();};}
+function applyFaultState(){
+  $('fault').setAttribute('aria-pressed',String(faultOn));const cue=$('faultcue'),bad=faultOn&&faultLoop%2===0;
+  if(!faultOn){cue.hidden=true;rig?.setFault(0,null);needsRender=true;lastPose=NaN;return;}
+  cue.hidden=false;cue.className=bad?'bad':'good';cue.textContent=bad?`✗ 錯誤：${fault.bad}`:`✓ 正確：${fault.good}`;
+  rig?.setFault(bad?1:0,bad?fault.bones:null);lastPose=NaN;needsRender=true;
+}
+function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden){if(playing&&rig){time=(time+dt*speed/duration)%1;if(faultOn&&time<prevTime){faultLoop++;applyFaultState();}prevTime=time;}if(rig&&lastPose!==time){rig.pose(time);lastPose=time;needsRender=true;updateHud();}if(needsRender){renderer.render(scene,camera);needsRender=false;}}raf=requestAnimationFrame(frame);}view();raf=requestAnimationFrame(frame);
 addEventListener('pagehide',()=>{disposed=true;cancelAnimationFrame(raf);resize.disconnect();scene.traverse(o=>{o.geometry?.dispose();for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])m.dispose();});renderer.dispose();},{once:true});

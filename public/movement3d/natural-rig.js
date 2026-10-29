@@ -26,7 +26,7 @@ export function createNaturalRig(model){
     const width=rest.get(index).wp.clone().sub(rest.get(pinky).wp),normal=width.cross(axis(h.side+'Hand',h.side+'HandMiddle1')).normalize();
     if(normal.dot(V(-h.s,0,0))<0)normal.negate();handNormals[h.side]=normal;
   }
-  let exercise='squat',flipped=false,highlighted=false,stanceWidth=.50;const motionCache=new Map(),handGuideCache=new Map();
+  let faultAmt=0,faultRe=null,exercise='squat',flipped=false,highlighted=false,stanceWidth=.50;const motionCache=new Map(),handGuideCache=new Map();
   function solve(chain,C,pole,a,b,c){const A=world(chain.upper),d=C.clone().sub(A),D=T.MathUtils.clamp(d.length(),Math.abs(chain.L1-chain.L2)+.0001,chain.L1+chain.L2-.0001),u=d.clone().normalize();const along=(chain.L1**2-chain.L2**2+D**2)/(2*D);const h=Math.sqrt(Math.max(0,chain.L1**2-along**2));const n=pole.clone().addScaledVector(u,-pole.dot(u)).normalize();const B=A.clone().addScaledVector(u,along).addScaledVector(n,h);aim(a,b,B.clone().sub(A));aim(b,c,A.clone().addScaledVector(u,D).sub(world(chain.lower)));}
   function rootAt(p,up){const hips=bones.Hips;hips.position.copy(hips.parent.worldToLocal(p.clone()));rotateWorld(hips,new T.Quaternion().setFromUnitVectors(V(0,1,0),up.clone().normalize()).multiply(rest.get(hips).wq));model.updateMatrixWorld(true);}
   function torso(up,headUp=up){aim('Spine','Spine1',up);aim('Spine1','Spine2',up);aim('Spine2','Neck',up);aim('Neck','Head',headUp);aim('Head','HeadTop_End',headUp);}
@@ -254,7 +254,7 @@ export function createNaturalRig(model){
   }
   function pose(t){const q=depthAt(t);
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
-    if(!['squat','pushup','lunge','jack','armcircle','kickclap'].includes(exercise)){retarget(t);secondaryHead(t);model.updateMatrixWorld(true);return;}
+    if(!['squat','pushup','lunge','jack','armcircle','kickclap'].includes(exercise)){retarget(t);applyFault();secondaryHead(t);model.updateMatrixWorld(true);return;}
     if(exercise==='armcircle'){
       // A moderate cone around the outstretched arm, with independent shoulder motion.
       // The neck, chest and pelvis do not inherit the old projected shrug/bob.
@@ -316,11 +316,11 @@ export function createNaturalRig(model){
       }
       model.updateMatrixWorld(true);raiseAboveFloor(root,up);
     }else if(exercise==='pushup'){
-      const up=V(0,lerp(.18,-.03,q),1).normalize();rootAt(V(0,lerp(.38,.24,q),0),up);const A=world(feet[0].upper),length=Math.min(...feet.map(f=>f.L1+f.L2))-.001,dy=A.y-.232,dx=A.x+.10;const rootZ=-1.21+Math.sqrt(length*length-dy*dy-dx*dx)-A.z;rootAt(V(0,lerp(.38,.24,q),rootZ),up);torso(up,up);
+      const up=V(0,lerp(.18,-.03,q),1).normalize();rootAt(V(0,lerp(.38,.24,q),0),up);const A=world(feet[0].upper),length=Math.min(...feet.map(f=>f.L1+f.L2))-.001,dy=A.y-.232,dx=A.x+.10;const rootZ=-1.21+Math.sqrt(length*length-dy*dy-dx*dx)-A.z;const sag=.10*faultAmt;if(sag){up.applyAxisAngle(V(1,0,0),-Math.atan2(sag,.52)).normalize();}rootAt(V(0,lerp(.38,.24,q)-sag,rootZ+sag*.3),up);torso(up,up);
       for(const f of feet){f.target.set(f.s*.10,.232,-1.21);solve(f,f.target,V(0,-1,0),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),.92).multiply(f.footQ));}
       for(const h of hands){h.target.set(h.s*.275,.078,.245);solve(h,h.target,V(h.s,0,-.35),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');orientSegment(h.side+'Hand',h.side+'HandMiddle1',V(0,0,1),V(0,-1,0));}
     }else if(exercise==='lunge'){
-      const tilt=.10+.09*q;rootAt(V(0,lerp(.81,.53,q),-.10),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.02));
+      const tilt=.10+.09*q;rootAt(V(0,lerp(.81,.53,q),-.10+.13*q*faultAmt),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.02));
       for(const f of feet){const front=(f.s===-1)!==flipped;f.target.set(f.s*.12,front?.074:.174,front?.38:-.55);solve(f,f.target,V(0,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(1,0,0),front?0:.60).multiply(f.footQ));}standingArms(.45);
     }else if(exercise==='jack'){
       const open=.5-.5*Math.cos(2*Math.PI*t),armOpen=.5-.5*Math.cos(2*Math.PI*(t-.035)),ph=(t%.5)/.5,hop=.095*Math.sin(Math.PI*ph),land=.026*Math.pow(Math.cos(Math.PI*ph),10),footX=lerp(.11,.33,open),dx=footX-.09;
@@ -329,14 +329,25 @@ export function createNaturalRig(model){
       for(const f of feet){f.target.set(f.s*footX,.074+hop,-.048);solve(f,f.target,V(0,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,f.footQ);const a=lerp(.13,2.96,armOpen);aim(f.side+'Arm',f.side+'ForeArm',V(f.s*Math.sin(a),-Math.cos(a),.03));aim(f.side+'ForeArm',f.side+'Hand',V(f.s*Math.sin(a+.08),-Math.cos(a+.08),.03));}
     }else{
       const hipLead=Math.sin(q*Math.PI)*.025,tilt=q*.43+hipLead;const f0=feet[0],hp=rest.get(f0.upper).wp,rootRest=rest.get(bones.Hips).wp,dx=stanceWidth/2-Math.abs(hp.x),dz=-.048-(-.055+hp.z-rootRest.z),startY=.074+Math.sqrt((f0.L1+f0.L2-.008)**2-dx*dx-dz*dz)-(hp.y-rootRest.y);rootAt(V(0,lerp(startY,.59,q),lerp(-.055,-.35,q)-hipLead),V(0,1,0));torso(V(0,Math.cos(tilt),Math.sin(tilt)),V(0,1,.08*q));
-      for(const f of feet){f.target.set(f.s*stanceWidth/2,.074,-.048);solve(f,f.target,V(f.s*.20,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.18).multiply(f.footQ));}const armQ=depthAt((t+.985)%1);standingArms(lerp(.18,1.38,armQ));
+      for(const f of feet){f.target.set(f.s*stanceWidth/2,.074,-.048);solve(f,f.target,V(f.s*(.20-.42*faultAmt),0,1).normalize(),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(V(0,1,0),f.s*.18).multiply(f.footQ));}const armQ=depthAt((t+.985)%1);standingArms(lerp(.18,1.38,armQ));
     }
     if(exercise!=='pushup'&&exercise!=='kickclap')for(const h of hands){
       const fore=world(h.end).sub(world(h.lower)).normalize(),palm=exercise==='armcircle'?V(0,-1,0):exercise==='jack'?V(0,0,1):V(-h.s,0,0);
       orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);
       if(exercise==='lunge')relaxDigits(h,palm);
     }
-    secondaryHead(t);
+    applyFault();secondaryHead(t);
+    model.updateMatrixWorld(true);
+  }
+  // Common-mistake overlays for retargeted demos (squat/lunge/push-up faults live in their branches).
+  function applyFault(){
+    if(!faultAmt)return;model.updateMatrixWorld(true);
+    const flex=(name,ang)=>{const b=bones[name];rotateWorld(b,new T.Quaternion().setFromAxisAngle(V(1,0,0),ang).multiply(b.getWorldQuaternion(new T.Quaternion())));};
+    if(exercise==='dbrow'||exercise==='dbrdl'){flex('Spine1',.28*faultAmt);flex('Spine2',.30*faultAmt);flex('Neck',-.35*faultAmt);}// rounded back, head craned up
+    else if(exercise==='dbpress'){flex('Spine',-.16*faultAmt);flex('Spine1',-.20*faultAmt);flex('Neck',.25*faultAmt);}// lumbar arch, chest thrown back
+    else if(exercise==='dbgoblet'){// knees cave in at depth: re-solve legs with an inward pole, feet unchanged
+      for(const f of feet){const P=world(f.foot),Q=f.foot.getWorldQuaternion(new T.Quaternion()),bend=1-world(f.upper).distanceTo(P)/(f.L1+f.L2);solve(f,P,V(f.s*(.2-.42*Math.min(1,bend*6)*faultAmt),0,1).normalize(),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,Q);}
+    }
     model.updateMatrixWorld(true);
   }
   // Secondary motion: the head lags the trunk's vertical velocity a little and breathes slowly on long loops.
@@ -351,6 +362,13 @@ export function createNaturalRig(model){
     model.updateMatrixWorld(true);
     const side=V(1,0,0),q=new T.Quaternion().setFromAxisAngle(side,pitch);
     rotateWorld(bones.Head,q.multiply(bones.Head.getWorldQuaternion(new T.Quaternion())));
+  }
+  // yellow tint over the faulty body part (vertices mostly skinned to bones matching faultRe)
+  const faultMasks=new Map();
+  function tintFault(o){
+    const key=o.uuid+String(faultRe);let mask=faultMasks.get(key);
+    if(!mask){const re=new RegExp(faultRe),si=o.geometry.attributes.skinIndex,sw=o.geometry.attributes.skinWeight;mask=[];for(let v=0;v<si.count;v++){let w=0;for(let k=0;k<4;k++)if(re.test(o.skeleton.bones[si.array[v*4+k]]?.name||''))w+=sw.array[v*4+k];if(w>.5)mask.push(v);}faultMasks.set(key,mask);}
+    const c=o.geometry.attributes.color.array;for(const v of mask){c[v*3]=1;c[v*3+1]=.82;c[v*3+2]=.18;}
   }
   const meshes=[];
   model.traverse(o=>{if(!o.isSkinnedMesh)return;
@@ -388,5 +406,5 @@ export function createNaturalRig(model){
     }
     o.userData.muscleProfiles=profiles;o.userData.plainColors=plain;o.geometry.setAttribute('color',new T.BufferAttribute(plain.slice(),3));
   });
-  return {pose,feet,hands,meshes,bones,rest,setStance(width){stanceWidth=T.MathUtils.clamp(width,.42,.58);},setExercise(name){if(!MOTIONS[name])throw Error('Unknown exercise: '+name);exercise=name;flipped=false;this.setHighlight(highlighted);},flipSide(){flipped=!flipped;return flipped;},setHighlight(on){highlighted=on;meshes.forEach(o=>{o.geometry.attributes.color.array.set(on?o.userData.muscleProfiles[exercise]:o.userData.plainColors);o.geometry.attributes.color.needsUpdate=true;});},setWireframe(on){meshes.forEach(o=>o.material.wireframe=on);}};
+  return {pose,feet,hands,meshes,bones,rest,setStance(width){stanceWidth=T.MathUtils.clamp(width,.42,.58);},setExercise(name){if(!MOTIONS[name])throw Error('Unknown exercise: '+name);exercise=name;flipped=false;this.setHighlight(highlighted);},flipSide(){flipped=!flipped;return flipped;},setFault(amount,re){faultAmt=amount;if(re!==undefined&&String(re)!==String(faultRe)){faultRe=re;this.setHighlight(highlighted);}},setHighlight(on){highlighted=on;meshes.forEach(o=>{o.geometry.attributes.color.array.set(on?o.userData.muscleProfiles[exercise]:o.userData.plainColors);if(faultRe)tintFault(o);o.geometry.attributes.color.needsUpdate=true;});},setWireframe(on){meshes.forEach(o=>o.material.wireframe=on);}};
 }
