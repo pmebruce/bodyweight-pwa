@@ -117,7 +117,9 @@ export default function Workout({ planId }: { planId: string }) {
         tone(988, 220)
         buzz(80)
         const setTxt = s.sets > 1 ? (s.set === s.sets ? '最後一組，' : `第${s.set}組，`) : ''
-        say(s.seconds ? `${s.ex.name}，${setTxt}${s.seconds}秒，開始` : `${s.ex.name}，${setTxt}${s.reps}下`)
+        // breathing reminder once per exercise (first set only) so it never repeats every set
+        const breath = !s.seconds && s.set === 1 && s.ex.cat !== 'aero' ? '。用力時吐氣，放回時吸氣' : ''
+        say(s.seconds ? `${s.ex.name}，${setTxt}${s.seconds}秒，開始` : `${s.ex.name}，${setTxt}${s.reps}下${breath}`)
       } else if (s.kind === 'rest') {
         tone(523, 160)
         say(`休息${s.seconds}秒。下一個，${s.next.ex.name}`)

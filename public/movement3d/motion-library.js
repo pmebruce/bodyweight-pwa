@@ -2023,12 +2023,47 @@ var targetLabels = (t) => ({
   s: t.s.map((m) => MUSCLE_LABEL[m])
 });
 
+// src/components/figure/coaching.ts
+var EFFORT_FIRST = /* @__PURE__ */ new Set(["dbrow", "dbfloorpress", "dbpress", "dblateral", "dbcurl", "dbcalf", "dbbridge", "bridge", "situp", "crunch", "superman", "pullup"]);
+var DEPTH_CURVE = Object.fromEntries(["squat", "pushup", "lunge"].map((k2) => [k2, [
+  { a: 0.08, b: 0.56, k: "ecc" },
+  { a: 0.56, b: 0.64, k: "hold" },
+  { a: 0.64, b: 0.93, k: "con" }
+]]));
+function repPhases(key, d, durs) {
+  if (DEPTH_CURVE[key]) return DEPTH_CURVE[key];
+  if (key === "bicycle") return void 0;
+  const total = durs.reduce((a, b) => a + b, 0);
+  const f = (ms) => ms / total;
+  let parts;
+  if (key === "dbrevlunge") parts = [[durs[0] + durs[1], "move1"], [durs[2], "hold"], [durs[3] + durs[4], "move2"]];
+  else if (d.keys.length === 2 && !d.smooth && !d.front) parts = [[durs[0], "move1"], [durs[1], "move2"]];
+  else if (d.keys.length === 3 && JSON.stringify(d.keys[1]) === JSON.stringify(d.keys[2])) parts = [[durs[0], "move1"], [durs[1], "hold"], [durs[2], "move2"]];
+  if (!parts) return void 0;
+  const first = EFFORT_FIRST.has(key);
+  let t = 0;
+  return parts.map(([ms, p]) => {
+    const ph = { a: t, b: t + f(ms), k: p === "hold" ? "hold" : p === "move1" === first ? "con" : "ecc" };
+    t = ph.b;
+    return ph;
+  });
+}
+var FAULTS = {
+  squat: { bad: "\u819D\u84CB\u5167\u593E", good: "\u819D\u84CB\u5C0D\u9F4A\u8173\u5C16\u3001\u5F80\u5916\u63A8", bones: "^(thigh_|calf_)" },
+  dbgoblet: { bad: "\u819D\u84CB\u5167\u593E", good: "\u819D\u84CB\u5C0D\u9F4A\u8173\u5C16\u3001\u5F80\u5916\u63A8", bones: "^(thigh_|calf_)" },
+  pushup: { bad: "\u584C\u8170\uFF08\u81C0\u90E8\u4E0B\u6C89\uFF09", good: "\u6536\u7DCA\u6838\u5FC3\uFF0C\u982D\u5230\u8173\u4E00\u76F4\u7DDA", bones: "^(pelvis|spine_01|spine_02)$" },
+  lunge: { bad: "\u524D\u819D\u904E\u5EA6\u524D\u63A8", good: "\u8EAB\u9AD4\u5782\u76F4\u4E0B\u964D\uFF0C\u5C0F\u817F\u63A5\u8FD1\u76F4\u7ACB", bones: "^(thigh_|calf_)" },
+  dbrow: { bad: "\u99DD\u80CC", good: "\u80CC\u6253\u76F4\u3001\u80F8\u53E3\u6253\u958B", bones: "^spine_0[123]$" },
+  dbrdl: { bad: "\u99DD\u80CC\u5F4E\u8170", good: "\u80CC\u6253\u76F4\uFF0C\u81C0\u90E8\u5F80\u5F8C\u63A8", bones: "^spine_0[123]$" },
+  dbpress: { bad: "\u8170\u5F80\u5F8C\u51F9", good: "\u808B\u9AA8\u4E0B\u6536\u3001\u81C0\u90E8\u593E\u7DCA", bones: "^(pelvis|spine_01|spine_02)$" }
+};
+
 // src/components/figure/motion-library.ts
 var MOTIONS = Object.fromEntries(EXERCISES.map((ex) => {
   const d = DEMOS[ex.demo];
   const durations = d.keys.map((_, i) => Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur);
   const targets = targetLabels(TARGETS[ex.demo]);
-  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1e3 * 1.35), prop: d.prop, db: d.db, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip }];
+  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1e3 * 1.35), prop: d.prop, db: d.db, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip, phases: ex.type === "reps" ? repPhases(ex.demo, d, durations) : void 0, fault: FAULTS[ex.demo] }];
 }));
 function createMotion(name) {
   const d = DEMOS[name];
