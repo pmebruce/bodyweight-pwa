@@ -39,7 +39,7 @@ export function slimArms(model,body){
 // hair: a shell grown from the scalp itself (head-skinned triangles above a hairline, pushed out along
 // the normals), parented rigidly to the head bone. Hugs the skull from every angle; call in bind pose.
 const smooth=(e0,e1,x)=>{const t=Math.min(1,Math.max(0,(x-e0)/(e1-e0)));return t*t*(3-2*t);};
-export function addHair(model,style){
+export function addHair(model,style,skin='medium'){
   if(!style)return null;model.updateMatrixWorld(true);
   let src=null,best=0;model.traverse(m=>{if(m.isSkinnedMesh&&m.geometry.attributes.position.count>best){best=m.geometry.attributes.position.count;src=m;}});
   if(!src)return null;const g=src.geometry,pos=g.attributes.position,nor=g.attributes.normal,bones=src.skeleton.bones,head=bones.find(b=>b.name==='head');if(!head)return null;
@@ -53,8 +53,8 @@ export function addHair(model,style){
     const ang=Math.atan2(Math.abs(u),f),fr=Math.cos(ang); // 1 front, 0 side, -1 back
     const line=fr>0?.23+(.36-.23)*(1-fr)**1.5:.36+(.60-.36)*Math.min(1,-fr*1.2);
     const ear=Math.exp(-(((f+.05)/.32)**2))*Math.exp(-(((Math.abs(u)-1)/.35)**2)); // carve around the ear
-    return {v,f,u,line:line-.12*ear,fr};};
-  const style_={C:{t:.011,crown:.012,sweep:.013,part:true},A:{t:.010,crown:.008,quiff:.026},B:{t:.008,crown:.005}}[style]||{t:.011,crown:.012};
+    return {v,f,u,line:line-.12*ear+(style==='C'?.006*Math.cos(u*Math.PI):0),fr};};
+  const style_={C:{t:.0025,crown:.0015},A:{t:.010,crown:.008,quiff:.026},B:{t:.008,crown:.005}}[style]||{t:.011,crown:.012};
   const D=new Float32Array(pos.count).fill(-1),out=[];
   for(let i=0;i<pos.count;i++){if(W[i]<.6)continue;const p=P[i],q=info(p);D[i]=q.line-q.v;
     const edge=smooth(0,.07,D[i]); // thin at the hairline
@@ -71,8 +71,14 @@ export function addHair(model,style){
     if(n===3){tris.push(...tri.map(i=>push(out[i].p)));continue;}
     const poly=[];for(let e=0;e<3;e++){const i=tri[e],j=tri[(e+1)%3];if(D[i]>0)poly.push(out[i].p);if((D[i]>0)!==(D[j]>0))poly.push(cut(i,j));}
     const ids=poly.map(push);for(let e=1;e+1<ids.length;e++)tris.push(ids[0],ids[e],ids[e+1]);}
-  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));geo.setIndex(tris);const geoM=mergeVertices(geo,2e-4);geoM.computeVertexNormals();
-  const mat=new T.MeshStandardMaterial({color:0x2a201b,roughness:.78,metalness:0,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2});
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));geo.setIndex(tris);
+  // A very short crop follows the skull; blend only the hairline into the selected skin.
+  if(style==='C'){
+    const hairColour=new T.Color(0x403b36),skinColour=new T.Color(SKINS[skin]||SKINS.medium),colours=[];
+    for(let i=0;i<verts.length;i+=3){const p=new T.Vector3(verts[i],verts[i+1],verts[i+2]),q=info(p),coverage=smooth(0,.045,q.line-q.v);skinColour.clone().lerp(hairColour,coverage).toArray(colours,i);}
+    geo.setAttribute('color',new T.Float32BufferAttribute(colours,3));
+  }const geoM=mergeVertices(geo,2e-4);geoM.computeVertexNormals();
+  const mat=new T.MeshStandardMaterial({color:style==='C'?0xffffff:0x2a201b,vertexColors:style==='C',roughness:style==='C'?.96:.78,metalness:0,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2});
   const mesh=new T.Mesh(geoM,mat);mesh.castShadow=true;model.add(mesh);mesh.applyMatrix4(model.matrixWorld.clone().invert());head.attach(mesh);return mesh;
 }
 // recolour skin vertices (the plain colour and the non-highlighted parts of every muscle profile)
