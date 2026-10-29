@@ -1179,7 +1179,7 @@ var DEMOS = {
     dur: [700, 900, 700, 900],
     still: 1
   },
-  // farmer's carry in place: tall, small steps, arms long and still
+  // Legacy projected thumbnail keys; the 3D rig supplies an anchored walking-and-turning cycle.
   dbfarmer: {
     view: view(102, 170),
     db: "pair",
@@ -1904,8 +1904,8 @@ var EXERCISES = [
     demo: "dbfarmer",
     cat: "db",
     quiet: true,
-    steps: ["\u96D9\u624B\u5404\u63D0\u4E00\u500B\u8F03\u91CD\u7684\u555E\u9234\u5782\u5728\u8EAB\u5074", "\u633A\u80F8\u3001\u80A9\u8180\u5F80\u5F8C\u4E0B\u6C89", "\u5C0F\u6B65\u539F\u5730\u8E0F\u6B65\u6216\u4F86\u56DE\u8D70", "\u4FDD\u6301\u8EAB\u9AD4\u4E0D\u6B6A\u4E0D\u6643\uFF0C\u7DAD\u6301\u6307\u5B9A\u6642\u9593"],
-    tip: "\u7DF4\u63E1\u529B\u8207\u6838\u5FC3\u7684\u597D\u52D5\u4F5C\uFF1B\u7A7A\u9593\u5C0F\u5C31\u539F\u5730\u8E0F\u6B65\uFF0C\u63E1\u4E0D\u4F4F\u5C31\u4F11\u606F\u3002"
+    steps: ["\u96D9\u624B\u5404\u63D0\u4E00\u500B\u63E1\u5F97\u7A69\u7684\u555E\u9234\uFF0C\u624B\u81C2\u81EA\u7136\u5782\u5728\u8EAB\u5074", "\u7AD9\u76F4\u3001\u6536\u7DCA\u6838\u5FC3\uFF0C\u80A9\u8180\u4FDD\u6301\u81EA\u7136\u7A69\u5B9A", "\u7528\u5C0F\u6B65\u5411\u524D\u8D70\uFF0C\u8F49\u8EAB\u6642\u5206\u5E7E\u6B65\u8ABF\u6574\u65B9\u5411\u518D\u8FD4\u56DE", "\u4FDD\u6301\u8EAB\u9AD4\u7A69\u5B9A\uFF0C\u907F\u514D\u63D0\u80A9\u3001\u5DE6\u53F3\u6B6A\u659C\u6216\u7529\u52D5\u555E\u9234"],
+    tip: "\u9078\u64C7\u5E73\u5766\u3001\u7121\u969C\u7919\u7684\u77ED\u8DDD\u96E2\u4F86\u56DE\u8D70\uFF1B\u7A7A\u9593\u4E0D\u8DB3\u53EF\u6539\u505A\u7AD9\u7ACB\u8CA0\u91CD\u6301\u63E1\uFF0C\u63E1\u4E0D\u4F4F\u5C31\u5148\u653E\u4E0B\u4F11\u606F\u3002"
   },
   {
     id: "dbcalf",
@@ -2063,7 +2063,7 @@ var MOTIONS = Object.fromEntries(EXERCISES.map((ex) => {
   const d = DEMOS[ex.demo];
   const durations = d.keys.map((_, i) => Array.isArray(d.dur) ? d.dur[i] ?? 500 : d.dur);
   const targets = targetLabels(TARGETS[ex.demo]);
-  return [ex.demo, { name: ex.name, english: ex.en, duration: Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1e3 * 1.35), prop: d.prop, db: d.db, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip, phases: ex.type === "reps" ? repPhases(ex.demo, d, durations) : void 0, fault: FAULTS[ex.demo] }];
+  return [ex.demo, { name: ex.name, english: ex.en, duration: ex.demo === "dbfarmer" ? 10.8 : Math.max(1.4, durations.reduce((a, b) => a + b, 0) / 1e3 * 1.35), prop: d.prop, db: d.db, front: !!d.front, still: d.still ?? 0, keys: d.keys.length, targets: TARGETS[ex.demo], labels: targets, steps: ex.steps, tip: ex.tip, phases: ex.type === "reps" ? repPhases(ex.demo, d, durations) : void 0, fault: FAULTS[ex.demo] }];
 }));
 function createMotion(name) {
   const d = DEMOS[name];

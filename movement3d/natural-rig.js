@@ -161,8 +161,8 @@ export function createNaturalRig(model){
     if(exercise==='dbgoblet'){
       const chest=world(bones.Spine2),up=world(bones.Neck).sub(chest).normalize(),forward=V(1,0,0).cross(up).normalize();
       for(const h of hands){
-        h.target.copy(chest).addScaledVector(up,.155).addScaledVector(forward,.25).add(V(h.s*.085,0,0));
-        solve(h,h.target,V(h.s*.65,-1,.12),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
+        h.target.copy(chest).addScaledVector(up,.155).addScaledVector(forward,.20).add(V(h.s*.085,0,0));
+        solve(h,h.target,V(h.s*.45,-1,.12),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');
         const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s*.45,.8,.2).normalize();
         orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm,.55);
       }
@@ -282,8 +282,52 @@ export function createNaturalRig(model){
     }
     finishHands(f,t);model.updateMatrixWorld(true);raiseAboveFloor(root,up);model.updateMatrixWorld(true);
   }
+  // Whole-body strength poses replace projected 2D keyframes for these references.
+  function strengthDepth(t){
+    const phases=MOTIONS[exercise].phases||[],smooth=x=>{x=T.MathUtils.clamp(x,0,1);return x*x*(3-2*x);};
+    const p=phases.find(p=>t>=p.a&&t<p.b);if(!p)return 0;
+    const u=smooth((t-p.a)/(p.b-p.a));return p.k==='ecc'?u:p.k==='hold'?1:1-u;
+  }
+  function carryPath(seconds){
+    const period=10.8,lap=Math.floor(seconds/period),u=((seconds%period)+period)%period,ss=x=>x*x*(3-2*x);let z,yaw;
+    if(u<3.6){z=lerp(-.6,.6,ss(u/3.6));yaw=0;}
+    else if(u<5.4){z=.6;yaw=Math.PI*ss((u-3.6)/1.8);}
+    else if(u<9){z=lerp(.6,-.6,ss((u-5.4)/3.6));yaw=Math.PI;}
+    else{z=-.6;yaw=Math.PI+Math.PI*ss((u-9)/1.8);}
+    return {z,yaw:yaw+lap*2*Math.PI};
+  }
+  function referencedStrength(t){
+    const up=V(0,1,0),f0=feet[0],hp=rest.get(f0.upper).wp,hipOffset=hp.y-rest.get(bones.Hips).wp.y;
+    const standingY=.074+Math.sqrt((f0.L1+f0.L2-.022)**2-.08**2)-hipOffset;
+    if(exercise==='dbfarmer'){
+      const seconds=t*10.8,path=carryPath(seconds),yawQ=new T.Quaternion().setFromAxisAngle(up,path.yaw),inverse=yawQ.clone().invert();
+      let rootY=standingY;
+      for(const f of feet){
+        const offset=f.s>0?.5:0,cycle=seconds/1.8+offset,n=Math.floor(cycle),phase=cycle-n,start=(n-offset)*1.8;
+        const contact=when=>{const p=carryPath(when+.54),v=V(f.s*.14,.074,0).applyAxisAngle(up,p.yaw);v.z+=p.z;return {point:v,yaw:p.yaw};};
+        const a=contact(start),b=contact(start+1.8),swing=T.MathUtils.clamp((phase-.60)/.40,0,1),ease=swing*swing*swing*(10-15*swing+6*swing*swing);
+        const p=a.point.clone().lerp(b.point,ease);p.y+=.065*Math.sin(Math.PI*swing);
+        f.target.copy(p).sub(V(0,0,path.z)).applyQuaternion(inverse);f.carryYaw=lerp(a.yaw,b.yaw,ease)-path.yaw;
+        const dx=f.target.x-rest.get(f.upper).wp.x,dz=f.target.z-(rest.get(f.upper).wp.z-rest.get(bones.Hips).wp.z);
+        rootY=Math.min(rootY,f.target.y+Math.sqrt(Math.max(.01,(f.L1+f.L2-.015)**2-dx*dx-dz*dz))-hipOffset);
+      }
+      rootAt(V(0,rootY,0),up);torso(up);
+      for(const f of feet){solve(f,f.target,V(f.s*.10,0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(up,f.carryYaw).multiply(f.footQ));}
+      for(const h of hands){const shoulder=world(h.upper);h.target.copy(shoulder).add(V(h.s*.02,-(h.L1+h.L2-.014),.015));solve(h,h.target,V(h.s*.2,0,1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(-h.s,0,0);orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm);}
+      const hips=bones.Hips;hips.position.copy(hips.parent.worldToLocal(V(0,rootY,path.z)));rotateWorld(hips,yawQ.multiply(hips.getWorldQuaternion(new T.Quaternion())));model.updateMatrixWorld(true);return;
+    }
+    const q=strengthDepth(t),goblet=exercise==='dbgoblet',tilt=(goblet?.24:1.05)*q,root=V(0,goblet?lerp(standingY,.60,q):standingY-.065*q,goblet?-.14*q:-.15*q);
+    const spineUp=V(0,Math.cos(tilt),Math.sin(tilt));rootAt(root,spineUp);
+    if(!goblet){const hip=world(f0.upper),kneeZ=-.048+f0.L2*Math.sin(.10),kneeY=.074+f0.L2*Math.cos(.10),dz=hip.z-kneeZ,dx=hip.x-f0.s*.14;root.y+=kneeY+Math.sqrt(Math.max(.01,f0.L1*f0.L1-dz*dz-dx*dx))-hip.y;rootAt(root,spineUp);}
+    torso(spineUp,V(0,Math.cos(tilt*.8),Math.sin(tilt*.8)));
+    for(const f of feet){f.target.set(f.s*(goblet?.23:.14),.074,-.048);solve(f,f.target,V(f.s*(goblet?.24:.06),0,1),f.side+'UpLeg',f.side+'Leg',f.side+'Foot');rotateWorld(f.foot,new T.Quaternion().setFromAxisAngle(up,goblet?f.s*.16:0).multiply(f.footQ));}
+    if(goblet)sharedGrip();
+    else for(const h of hands){const shoulder=world(h.upper);h.target.copy(shoulder).add(V(h.s*.025,-(h.L1+h.L2-.008),.035));solve(h,h.target,V(h.s*.2,0,1),h.side+'Arm',h.side+'ForeArm',h.side+'Hand');const fore=world(h.end).sub(world(h.lower)).normalize(),palm=V(0,0,-1);orientSegment(h.side+'ForeArm',h.side+'Hand',fore,palm);orientSegment(h.side+'Hand',h.side+'HandMiddle1',fore,palm);closeFist(h,palm);}
+    applyFault();model.updateMatrixWorld(true);
+  }
   function pose(t){const q=depthAt(t);
     for(const [b,r] of rest){b.position.copy(r.p);b.quaternion.copy(r.q);}model.updateMatrixWorld(true);
+    if(['dbfarmer','dbgoblet','dbrdl'].includes(exercise)){referencedStrength(t);return;}
     if(!['squat','pushup','lunge','jack','armcircle','kickclap'].includes(exercise)){retarget(t);applyFault();secondaryHead(t);model.updateMatrixWorld(true);return;}
     if(exercise==='armcircle'){
       // A moderate cone around the outstretched arm, with independent shoulder motion.
