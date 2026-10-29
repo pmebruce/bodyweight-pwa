@@ -53,8 +53,11 @@ function applyFaultState(){
   cue.hidden=false;cue.className=bad?'bad':'good';cue.textContent=bad?`✗ 錯誤：${fault.bad}`:`✓ 正確：${fault.good}`;
   rig?.setFault(bad?1:0,bad?fault.bones:null);lastPose=NaN;needsRender=true;
 }
-function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden){if(playing&&rig){time=(time+dt*speed/duration)%1;if(faultOn&&time<prevTime){faultLoop++;applyFaultState();}prevTime=time;}if(rig&&lastPose!==time){rig.pose(time);lastPose=time;needsRender=true;updateHud();}if(needsRender){renderer.render(scene,camera);needsRender=false;}}raf=requestAnimationFrame(frame);}view();raf=requestAnimationFrame(frame);
+function frame(now){const dt=Math.min((now-last)/1000,.05);last=now;if(!document.hidden){if(playing&&rig){time=(time+dt*speed/duration)%1;if(faultOn&&time<prevTime){faultLoop++;applyFaultState();}prevTime=time;}if(rig&&lastPose!==time){rig.pose(time);lastPose=time;needsRender=true;updateHud();}if(needsRender){(headcam&&rig&&aimHead()),renderer.render(scene,camera);needsRender=false;}}raf=requestAnimationFrame(frame);}view();raf=requestAnimationFrame(frame);
 addEventListener('pagehide',()=>{disposed=true;cancelAnimationFrame(raf);resize.disconnect();scene.traverse(o=>{o.geometry?.dispose();for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])m.dispose();});renderer.dispose();},{once:true});
 
 addEventListener('storage',e=>{if(e.key==='bwfit:data:v1'&&!params.has('avatar')){const a=readAvatar(params);if(JSON.stringify(a)!==sessionStorage.getItem('m3d-avatar'))location.reload();}});
 try{sessionStorage.setItem('m3d-avatar',JSON.stringify(readAvatar(params)));}catch{}
+
+// debug: ?headcam=yawDeg,pitchDeg close-up of the head (used for hair checks)
+const headcam=params.get('headcam');function aimHead(){const [y,p]=headcam.split(',').map(Number),h=rig.bones.Head.getWorldPosition(new T.Vector3()).add(new T.Vector3(0,.08,0)),Y=y*Math.PI/180,P=(p||0)*Math.PI/180;camera.position.copy(h).add(new T.Vector3(Math.sin(Y)*Math.cos(P),Math.sin(P),Math.cos(Y)*Math.cos(P)).multiplyScalar(.75));camera.lookAt(h);}
