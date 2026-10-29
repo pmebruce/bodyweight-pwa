@@ -120,6 +120,23 @@ export default function Settings() {
             }}
           />
         </Row>
+        <Row icon="sound" title="提示音量" desc={`語音與嗶聲 ${Math.round((s.volume ?? 0.8) * 100)}%`}>
+          <input
+            type="range"
+            className="set-range"
+            min={0.1}
+            max={1}
+            step={0.1}
+            value={s.volume ?? 0.8}
+            aria-label="提示音量"
+            onChange={(e) => updateSettings({ volume: +e.target.value })}
+            onPointerUp={() => {
+              unlockMedia()
+              if (s.sound) beep(880, 150)
+              if (s.voice) setTimeout(() => speak('音量測試'), 180)
+            }}
+          />
+        </Row>
         <Row icon="sound" title="提示音效" desc="倒數嗶聲與完成音效">
           <Toggle
             checked={s.sound}

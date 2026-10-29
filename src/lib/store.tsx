@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { AppData, Plan, Settings, WeightEntry, WorkoutLog } from '../types'
 import { BUILTIN_PLANS } from '../data/plans'
 import { EX_MAP } from '../data/exercises'
+import { setCueVolume } from './cues'
 
 const KEY = 'bwfit:data:v1'
 
@@ -13,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   weeklyGoal: 3,
   voice: true,
   sound: true,
+  volume: 0.8,
   vibrate: true,
 }
 
@@ -86,6 +88,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* storage full or private mode */
     }
   }, [data])
+
+  useEffect(() => setCueVolume(data.settings.volume), [data.settings.volume])
 
   useEffect(() => {
     // ask the browser to keep our data (helps on iOS / Safari eviction)

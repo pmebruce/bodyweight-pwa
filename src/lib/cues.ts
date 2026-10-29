@@ -1,6 +1,11 @@
 // Audio / voice / haptic / wake-lock helpers for the workout player.
 
 let ctx: AudioContext | null = null
+/** master cue volume 0–1 (set from settings) */
+let master = 0.8
+export function setCueVolume(v: number) {
+  master = Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0.8))
+}
 
 /** Must be called from a user gesture (iOS requires it to unlock audio + speech). */
 export function unlockMedia() {
@@ -43,7 +48,7 @@ export function beep(freq = 880, ms = 120, volume = 0.25) {
     o.type = 'sine'
     o.frequency.value = freq
     g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(volume, t + 0.01)
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume * master * 1.6), t + 0.01)
     g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000)
     o.connect(g).connect(ctx.destination)
     o.start(t)
@@ -60,6 +65,12 @@ export function chime() {
 }
 
 let voiceCache: SpeechSynthesisVoice | null | undefined
+// voices load asynchronously (Chrome / iOS): drop the cache when the list changes
+try {
+  if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => (voiceCache = undefined))
+} catch {
+  /* ignore */
+}
 function pickVoice() {
   if (voiceCache !== undefined && voiceCache !== null) return voiceCache
   const voices = speechSynthesis.getVoices()
@@ -78,6 +89,7 @@ export function speak(text: string) {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = 'zh-TW'
     u.rate = 1.05
+    u.volume = master
     const v = pickVoice()
     if (v) u.voice = v
     speechSynthesis.speak(u)

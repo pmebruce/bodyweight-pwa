@@ -73,6 +73,8 @@ export interface Settings {
   weeklyGoal: number
   voice: boolean
   sound: boolean
+  /** cue volume 0–1 (speech and beeps) */
+  volume: number
   vibrate: boolean
 }
 

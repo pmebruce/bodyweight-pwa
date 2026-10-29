@@ -116,7 +116,7 @@ export default function Workout({ planId }: { planId: string }) {
       if (s.kind === 'work') {
         tone(988, 220)
         buzz(80)
-        const setTxt = s.sets > 1 ? `第${s.set}組，` : ''
+        const setTxt = s.sets > 1 ? (s.set === s.sets ? '最後一組，' : `第${s.set}組，`) : ''
         say(s.seconds ? `${s.ex.name}，${setTxt}${s.seconds}秒，開始` : `${s.ex.name}，${setTxt}${s.reps}下`)
       } else if (s.kind === 'rest') {
         tone(523, 160)
@@ -219,7 +219,11 @@ export default function Workout({ planId }: { planId: string }) {
           if (sec <= 3 && sec >= 1) {
             tone(660, 110)
             if (s.kind !== 'work') buzz(30)
+            // spoken 3-2-1 (short digits keep up with the clock; speak() cancels any lagging phrase)
+            if (s.kind !== 'work' || (s.seconds ?? 0) >= 10) say(['', '一', '二', '三'][sec])
           }
+          // rest ending: heads-up 5 s before the next exercise
+          if (s.kind === 'rest' && s.seconds >= 10 && sec === 6) say(`休息快結束，準備${s.next.ex.name}${s.next.sets > 1 && s.next.set === s.next.sets ? '，最後一組' : ''}`)
           if (s.kind === 'work' && s.seconds && s.seconds >= 20 && sec === 10) say('還剩10秒')
         }
         if (left <= 0) {
@@ -256,6 +260,7 @@ export default function Workout({ planId }: { planId: string }) {
   }
   const resume = () => {
     if (!paused) return
+    unlockMedia() // resume is a user tap: re-unlock audio/speech (iOS suspends it in the background)
     const t = Date.now()
     const d = t - pauseStart.current
     pausedTotal.current += d
