@@ -52,6 +52,8 @@ export function sanitize(raw: unknown): AppData {
     const st = r.settings as Partial<Settings>
     d.settings = { ...DEFAULT_SETTINGS, ...st, onboarded: st.onboarded ?? true }
     if (typeof d.settings.nickname !== 'string') d.settings.nickname = ''
+    // female body type is hidden for now: migrate to male
+    d.settings.body = 'male'
   }
   return d
 }

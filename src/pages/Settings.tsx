@@ -26,7 +26,6 @@ const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').mat
 
 const SKINS = [['light', '白皙', '#e8bc9c'], ['medium', '自然', '#bd8d73'], ['tan', '小麥', '#9a6a4c'], ['deep', '深色', '#6a4530']] as const
 const HAIRS = [['C', '側分'], ['A', '飛機頭'], ['B', '短刺'], ['', '光頭']] as const
-const BODIES = [['male', '男性'], ['female', '女性']] as const
 
 export default function Settings() {
   const { data, updateSettings, replaceAll, clearAll } = useStore()
@@ -122,13 +121,6 @@ export default function Settings() {
           <div className="chips">
             {HAIRS.map(([k, label]) => (
               <button key={k} className="chip" aria-pressed={(s.hair ?? 'C') === k} onClick={() => updateSettings({ hair: k })}>{label}</button>
-            ))}
-          </div>
-        </Row>
-        <Row icon="user" title="體型">
-          <div className="chips">
-            {BODIES.map(([k, label]) => (
-              <button key={k} className="chip" aria-pressed={(s.body ?? 'male') === k} onClick={() => updateSettings({ body: k })}>{label}</button>
             ))}
           </div>
         </Row>

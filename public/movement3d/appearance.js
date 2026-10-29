@@ -6,7 +6,7 @@ export function readAvatar(params){
   let s={};try{s=JSON.parse(localStorage.getItem('bwfit:data:v1')||'{}').settings||{};}catch{}
   const o=(params.get('avatar')||'').split(',');
   const skin=o[0]||s.skin,hair=o.length>1?o[1]:s.hair,body=o[2]||s.body;
-  return {skin:SKINS[skin]?skin:'medium',hair:['','A','B','C'].includes(hair)?hair:'C',body:body==='female'?'female':'male'};
+  return {skin:SKINS[skin]?skin:'medium',hair:['','A','B','C'].includes(hair)?hair:'C',body:'male'/* female dormant for now */};
 }
 const weightOf=(geo,bones,re,i)=>{let w=0;for(let k=0;k<4;k++){const b=bones[geo.attributes.skinIndex.array[i*4+k]];if(b&&re.test(b.name))w+=geo.attributes.skinWeight.array[i*4+k];}return w;};
 // female silhouette: wider hips, narrower waist / shoulders, slimmer arms, soft chest. Bind-pose vertex edit.
