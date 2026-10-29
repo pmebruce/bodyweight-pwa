@@ -25,7 +25,7 @@ function Row({ icon, title, desc, children }: { icon: string; title: string; des
 const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true
 
 const SKINS = [['light', '白皙', '#e8bc9c'], ['medium', '自然', '#bd8d73'], ['tan', '小麥', '#9a6a4c'], ['deep', '深色', '#6a4530']] as const
-const HAIRS = [['C', '側分'], ['A', '飛機頭'], ['B', '短刺'], ['', '光頭']] as const
+const HAIRS = [['C', '短寸髮'], ['A', '飛機頭'], ['B', '短刺'], ['', '光頭']] as const
 
 export default function Settings() {
   const { data, updateSettings, replaceAll, clearAll } = useStore()
