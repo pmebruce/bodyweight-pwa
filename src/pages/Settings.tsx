@@ -24,6 +24,10 @@ function Row({ icon, title, desc, children }: { icon: string; title: string; des
 
 const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true
 
+const SKINS = [['light', '白皙', '#e8bc9c'], ['medium', '自然', '#bd8d73'], ['tan', '小麥', '#9a6a4c'], ['deep', '深色', '#6a4530']] as const
+const HAIRS = [['C', '側分'], ['A', '飛機頭'], ['B', '短刺'], ['', '光頭']] as const
+const BODIES = [['male', '男性'], ['female', '女性']] as const
+
 export default function Settings() {
   const { data, updateSettings, replaceAll, clearAll } = useStore()
   const s = data.settings
@@ -103,6 +107,32 @@ export default function Settings() {
         <Row icon="clock" title="開始前倒數">
           <Stepper value={s.prepSeconds} min={0} max={30} step={1} onChange={(v) => updateSettings({ prepSeconds: v })} suffix="秒" />
         </Row>
+      </div>
+
+      <h2 className="section-title">示範角色</h2>
+      <div className="set-group avatar-set">
+        <Row icon="user" title="膚色">
+          <div className="chips">
+            {SKINS.map(([k, label, c]) => (
+              <button key={k} className="swatch" aria-label={label} aria-pressed={(s.skin ?? 'medium') === k} style={{ background: c }} onClick={() => updateSettings({ skin: k })} />
+            ))}
+          </div>
+        </Row>
+        <Row icon="user" title="髮型">
+          <div className="chips">
+            {HAIRS.map(([k, label]) => (
+              <button key={k} className="chip" aria-pressed={(s.hair ?? 'C') === k} onClick={() => updateSettings({ hair: k })}>{label}</button>
+            ))}
+          </div>
+        </Row>
+        <Row icon="user" title="體型">
+          <div className="chips">
+            {BODIES.map(([k, label]) => (
+              <button key={k} className="chip" aria-pressed={(s.body ?? 'male') === k} onClick={() => updateSettings({ body: k })}>{label}</button>
+            ))}
+          </div>
+        </Row>
+        <iframe className="avatar-preview" title="角色預覽" src={`${import.meta.env.BASE_URL}movement3d/index.html?exercise=squat&t=0.05&hud=0&preview=1`} />
       </div>
 
       <h2 className="section-title">提示</h2>

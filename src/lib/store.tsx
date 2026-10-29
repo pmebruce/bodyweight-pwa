@@ -3,6 +3,7 @@ import type { AppData, Plan, Settings, WeightEntry, WorkoutLog } from '../types'
 import { BUILTIN_PLANS } from '../data/plans'
 import { EX_MAP } from '../data/exercises'
 import { setCueVolume } from './cues'
+import { FACE } from '../components/figure/draw'
 
 const KEY = 'bwfit:data:v1'
 
@@ -16,6 +17,9 @@ export const DEFAULT_SETTINGS: Settings = {
   sound: true,
   volume: 0.8,
   vibrate: true,
+  skin: 'medium',
+  hair: 'C',
+  body: 'male',
 }
 
 function emptyData(): AppData {
@@ -89,6 +93,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [data])
 
+  // 2D figure hair follows the character setting (module-level style read at draw time)
+  FACE.hair = data.settings.hair ?? 'C'
   useEffect(() => setCueVolume(data.settings.volume), [data.settings.volume])
 
   useEffect(() => {

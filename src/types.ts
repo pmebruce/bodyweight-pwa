@@ -76,6 +76,10 @@ export interface Settings {
   /** cue volume 0–1 (speech and beeps) */
   volume: number
   vibrate: boolean
+  /** 3D/2D demo character */
+  skin?: 'light' | 'medium' | 'tan' | 'deep'
+  hair?: '' | 'A' | 'B' | 'C'
+  body?: 'male' | 'female'
 }
 
 export interface AppData {
