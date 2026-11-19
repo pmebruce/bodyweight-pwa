@@ -4,6 +4,7 @@ import { preview } from 'vite'
 
 const base = '/bodyweight-pwa/'
 const storageKey = 'bwfit:data:v1'
+const testTime = Date.UTC(2026, 0, 1)
 const server = process.env.WORKOUT_CHECK_URL
   ? null
   : await preview({ preview: { host: '127.0.0.1', port: 0, strictPort: true } })
@@ -29,6 +30,7 @@ async function workout(name, items, check) {
     }, { key: storageKey, items })
     const page = await context.newPage()
     page.setDefaultTimeout(10000)
+    if (items.some((item) => item.seconds)) await page.clock.setFixedTime(testTime)
     await page.goto(new URL('#/workout/regression', url).href)
     await page.getByRole('button', { name: '開始', exact: true }).tap()
     await check(page)
@@ -107,9 +109,11 @@ try {
     ['計時組暫停不計時，繼續後自動儲存', [timed], async (page) => {
       await button(page, '暫停').tap()
       await page.getByRole('heading', { name: '已暫停' }).waitFor()
-      await page.waitForTimeout(2200)
+      await page.clock.setFixedTime(testTime + 3000)
       assert.equal((await stored(page)).history.length, 0)
       await page.getByText('點一下任意處繼續').tap()
+      await button(page, '暫停').waitFor()
+      await page.clock.setFixedTime(testTime + 5000)
       const data = await result(page, '訓練完成！', 1, true)
       assert.equal(data.history[0].activeSeconds, 2)
       assert.deepEqual(data.weights.dbfarmer[0].setReps, [2])
