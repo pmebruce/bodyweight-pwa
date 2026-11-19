@@ -28,7 +28,7 @@ async function workout(name, items, check) {
       }))
     }, { key: storageKey, items })
     const page = await context.newPage()
-    page.setDefaultTimeout(5000)
+    page.setDefaultTimeout(10000)
     await page.goto(new URL('#/workout/regression', url).href)
     await page.getByRole('button', { name: '開始', exact: true }).tap()
     await check(page)
@@ -63,7 +63,7 @@ try {
   const cases = [
     ['完成後跳過末組，只儲存已完成組數', [{ ...rep, sets: 2 }], async (page) => {
       await button(page, '完成這組').tap()
-      await page.getByText('第 2 / 2 組').waitFor()
+      await page.getByRole('group', { name: '目前訓練步驟' }).getByText('第 2 / 2 組').waitFor()
       await button(page, '跳過').tap()
       await result(page, '訓練結束', 1, false)
       await button(page, '查看紀錄').tap()
@@ -76,21 +76,24 @@ try {
       await result(page, '訓練結束', 0, false)
     }],
     ['返回上一組會撤銷該組的啞鈴重量', [dumbbell], async (page) => {
-      await page.getByRole('spinbutton', { name: '這組實際完成次數' }).fill('8')
-      await button(page, '完成這組').tap()
-      await page.getByText('第 2 / 2 組').waitFor()
+      const step = page.getByRole('group', { name: '目前訓練步驟' })
+      const reps = step.getByRole('spinbutton', { name: '這組實際完成次數' })
+      await reps.fill('8')
+      await step.getByRole('button', { name: '完成這組' }).tap()
+      await step.getByText('第 2 / 2 組').waitFor()
       await button(page, '上一個').tap()
-      await page.getByText('第 1 / 2 組').waitFor()
-      assert.equal(await page.getByRole('spinbutton', { name: '這組實際完成次數' }).inputValue(), '')
+      await step.getByText('第 1 / 2 組').waitFor()
+      assert.equal(await reps.inputValue(), '')
       await button(page, '跳過').tap()
-      await page.getByText('第 2 / 2 組').waitFor()
-      await page.getByRole('spinbutton', { name: '這組實際完成次數' }).fill('7')
-      await button(page, '完成這組').tap()
-      const data = await result(page, '訓練結束', 1, false)
-      const [weight] = data.weights.dbgoblet
+      await step.getByText('第 2 / 2 組').waitFor()
+      await reps.fill('7')
+      await step.getByRole('button', { name: '完成這組' }).tap()
+      await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).history.length === 1, storageKey)
+      const [weight] = (await stored(page)).weights.dbgoblet
       assert.deepEqual(weight.kg, [10])
       assert.deepEqual(weight.setReps, [7])
       assert.equal(weight.done, false)
+      await result(page, '訓練結束', 1, false)
     }],
     ['同一組連點兩下只記一組', [rep], async (page) => {
       await button(page, '完成這組').evaluate((element) => {

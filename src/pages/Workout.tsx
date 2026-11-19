@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion, useIsPresent } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import confetti from 'canvas-confetti'
 import { uid, useStore } from '../lib/store'
 import { resolvePlan, itemTarget } from '../lib/plan'
@@ -64,7 +64,8 @@ export default function Workout({ planId }: { planId: string }) {
   const { steps, totalWork } = useMemo(() => (plan ? buildSteps(plan, settings.prepSeconds) : { steps: [], totalWork: 0 }), [plan]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [phase, setPhase] = useState<'ready' | 'run' | 'done'>('ready')
-  const [idx, setIdx] = useState(0)
+  const [position, setPosition] = useState({ index: 0, visit: 0 })
+  const idx = position.index
   const [dir, setDir] = useState(1)
   const [paused, setPaused] = useState(false)
   const [now, setNow] = useState(Date.now())
@@ -72,7 +73,7 @@ export default function Workout({ planId }: { planId: string }) {
   const [log, setLog] = useState<WorkoutLog | null>(null)
   const [wakeHeld, setWakeHeld] = useState(false)
 
-  const activeStep = useRef<number | null>(null)
+  const activeStep = useRef<typeof position | null>(null)
   const endAt = useRef(0)
   const pausedLeft = useRef(0)
   const pauseStart = useRef(0)
@@ -105,9 +106,10 @@ export default function Workout({ planId }: { planId: string }) {
       const s = steps[i]
       if (!s) return
       const t = Date.now()
-      activeStep.current = i
+      const next = { index: i, visit: (activeStep.current?.visit ?? 0) + 1 }
+      activeStep.current = next
       setDir(d)
-      setIdx(i)
+      setPosition(next)
       setNow(t)
       stepStart.current = t
       lastSec.current = -1
@@ -132,7 +134,7 @@ export default function Workout({ planId }: { planId: string }) {
 
   const finish = useCallback(
     (reachedEnd: boolean) => {
-      if (activeStep.current !== idx || !plan) return
+      if (activeStep.current !== position || !plan) return
       activeStep.current = null
       const t = Date.now()
       if (paused) pausedTotal.current += t - pauseStart.current
@@ -195,18 +197,18 @@ export default function Workout({ planId }: { planId: string }) {
         say('訓練結束，辛苦了')
       }
     },
-    [idx, paused, plan, steps, saveWorkout],
+    [position, paused, plan, steps, saveWorkout],
   )
 
   const advance = useCallback(() => {
-    if (activeStep.current !== idx) return
+    if (activeStep.current !== position) return
     if (idx + 1 >= steps.length) finish(true)
     else enterStep(idx + 1, 1)
-  }, [idx, steps.length, finish, enterStep])
+  }, [idx, position, steps.length, finish, enterStep])
 
   const completeWork = useCallback((actual?: number) => {
     const s = steps[idx]
-    if (activeStep.current !== idx || paused || s?.kind !== 'work') return
+    if (activeStep.current !== position || paused || s?.kind !== 'work') return
     const seconds = s.seconds ?? Math.min((Date.now() - stepStart.current) / 1000, 600)
     const reps = s.reps ? (actual ?? s.reps) : 0
     const target = s.seconds ?? s.reps ?? 0
@@ -217,14 +219,14 @@ export default function Workout({ planId }: { planId: string }) {
       weight: s.ex.cat === 'db' ? { kg: kgFor(s.ex.id), actual: s.seconds ?? reps, target } : undefined,
     })
     advance()
-  }, [steps, idx, paused, advance, kgSel, data.weights]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [steps, idx, position, paused, advance, kgSel, data.weights]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // main clock
   useEffect(() => {
     if (phase !== 'run' || paused) return
     let raf = 0
     const loop = () => {
-      if (activeStep.current !== idx) return
+      if (activeStep.current !== position) return
       const t = Date.now()
       setNow(t)
       const s = steps[idx]
@@ -255,7 +257,7 @@ export default function Workout({ planId }: { planId: string }) {
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [phase, paused, idx, steps, completeWork, advance])
+  }, [phase, paused, idx, position, steps, completeWork, advance])
 
   const start = async () => {
     if (activeStep.current !== null) return
@@ -270,7 +272,7 @@ export default function Workout({ planId }: { planId: string }) {
   }
 
   const pause = () => {
-    if (paused || activeStep.current !== idx) return
+    if (paused || activeStep.current !== position) return
     const t = Date.now()
     pauseStart.current = t
     pausedLeft.current = Math.max(0, endAt.current - t)
@@ -279,7 +281,7 @@ export default function Workout({ planId }: { planId: string }) {
     stopSpeaking()
   }
   const resume = () => {
-    if (!paused) return
+    if (!paused || activeStep.current !== position) return
     unlockMedia() // resume is a user tap: re-unlock audio/speech (iOS suspends it in the background)
     const t = Date.now()
     const d = t - pauseStart.current
@@ -290,12 +292,12 @@ export default function Workout({ planId }: { planId: string }) {
     setPaused(false)
   }
   const skip = () => {
-    if (activeStep.current !== idx) return
+    if (activeStep.current !== position) return
     if (paused && idx + 1 < steps.length) resume()
     advance()
   }
   const back = () => {
-    if (activeStep.current !== idx) return
+    if (activeStep.current !== position) return
     let j = idx - 1
     while (j >= 0 && steps[j].kind !== 'work') j--
     if (j < 0) return
@@ -304,6 +306,7 @@ export default function Workout({ planId }: { planId: string }) {
     enterStep(j, -1)
   }
   const addRest = (sec: number) => {
+    if (paused || activeStep.current !== position) return
     endAt.current += sec * 1000
     lastSec.current = -1
     setNow(Date.now())
@@ -360,29 +363,16 @@ export default function Workout({ planId }: { planId: string }) {
       )}
 
       <div className="wk-stage">
-        <AnimatePresence mode="popLayout" custom={dir} initial={false}>
+        <AnimatePresence custom={dir} initial={false}>
           {phase === 'ready' && <ReadyView key="ready" plan={plan} onStart={start} />}
           {phase === 'run' && (
-            <motion.div
-              key={idx}
-              className="wk-step"
-              custom={dir}
-              variants={{
-                enter: (d: number) => ({ x: d > 0 ? '60%' : '-60%', opacity: 0, scale: 0.94 }),
-                center: { x: 0, opacity: 1, scale: 1 },
-                exit: (d: number) => ({ x: d > 0 ? '-60%' : '60%', opacity: 0, scale: 0.94 }),
-              }}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-            >
+            <WorkoutStep key={position.visit} direction={dir}>
               {step.kind === 'work' ? (
                 <WorkView step={step} leftMs={leftMs} frac={fracInStep} onComplete={completeWork} paused={paused} kg={step.ex.cat === 'db' ? { value: kgFor(step.ex.id), hint: suggestKg(data.weights, step.ex.id), set: (v) => setKgSel((m) => ({ ...m, [step.ex.id]: v })) } : undefined} />
               ) : (
                 <RestView kind={step.kind} next={step.next} leftMs={leftMs} frac={fracInStep} onAdd={() => addRest(10)} onSkip={skip} />
               )}
-            </motion.div>
+            </WorkoutStep>
           )}
           {phase === 'done' && log && <DoneView key="done" log={log} plan={plan} />}
         </AnimatePresence>
@@ -453,6 +443,35 @@ export default function Workout({ planId }: { planId: string }) {
           </button>
         </div>
       </Sheet>
+    </motion.div>
+  )
+}
+
+function WorkoutStep({ direction, children }: { direction: number; children: ReactNode }) {
+  const isPresent = useIsPresent()
+  const setStepRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) node.inert = !isPresent
+  }, [isPresent])
+
+  return (
+    <motion.div
+      ref={setStepRef}
+      className="wk-step"
+      role="group"
+      aria-label="目前訓練步驟"
+      aria-hidden={!isPresent}
+      custom={direction}
+      variants={{
+        enter: (d: number) => ({ x: d > 0 ? '60%' : '-60%', opacity: 0, scale: 0.94 }),
+        center: { x: 0, opacity: 1, scale: 1 },
+        exit: (d: number) => ({ x: d > 0 ? '-60%' : '60%', opacity: 0, scale: 0.94 }),
+      }}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: 'spring', stiffness: 300, damping: 32 }}
+    >
+      {children}
     </motion.div>
   )
 }
