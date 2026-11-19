@@ -24,6 +24,16 @@ npm run deploy
 `main` 為原始碼；GitHub Pages 發布 `gh-pages` 分支的建置輸出。
 正式網址：https://pmebruce.github.io/bodyweight-pwa/
 
+## 訓練流程回歸檢查
+
+```sh
+npx playwright-core install chromium
+npm run build
+npm run check:workout
+```
+
+檢查以手機直式視窗開啟正式建置，操作完成、跳過、返回上一組及暫停／繼續，再讀回儲存的組數和重量。每個案例使用獨立的瀏覽器資料。設定 `WORKOUT_CHECK_URL` 可測試已部署的網址。設定 `CHROMIUM_PATH` 可改用本機的 Chromium。
+
 ## 動作與資產
 
 - `src/components/figure/demos.ts` / `rig.ts`：關節關鍵影格、節奏、深度提示與插值資料。

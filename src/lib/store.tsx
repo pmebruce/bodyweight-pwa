@@ -73,10 +73,8 @@ interface Store {
   getPlan: (id: string) => Plan | undefined
   savePlan: (p: Plan) => void
   deletePlan: (id: string) => void
-  addLog: (l: WorkoutLog) => void
+  saveWorkout: (log: WorkoutLog, weights: Record<string, WeightEntry>) => void
   deleteLog: (id: string) => void
-  /** save dumbbell weights from one workout (newest first, last 50 kept per exercise) */
-  logWeights: (entries: Record<string, WeightEntry>) => void
   updateSettings: (s: Partial<Settings>) => void
   replaceAll: (d: AppData) => void
   clearAll: () => void
@@ -115,24 +113,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [])
   const deletePlan = useCallback((id: string) => setData((d) => ({ ...d, customPlans: d.customPlans.filter((p) => p.id !== id) })), [])
-  const addLog = useCallback((l: WorkoutLog) => setData((d) => ({ ...d, history: [l, ...d.history] })), [])
   const deleteLog = useCallback((id: string) => setData((d) => ({ ...d, history: d.history.filter((h) => h.id !== id) })), [])
-  const logWeights = useCallback(
-    (entries: Record<string, WeightEntry>) =>
-      setData((d) => {
-        const w = { ...(d.weights ?? {}) }
-        for (const [id, e] of Object.entries(entries)) w[id] = [e, ...(w[id] ?? [])].slice(0, 50)
-        return { ...d, weights: w }
-      }),
-    [],
-  )
+  const saveWorkout = useCallback((log: WorkoutLog, entries: Record<string, WeightEntry>) => {
+    setData((d) => {
+      const history = [log, ...d.history]
+      const ids = Object.keys(entries)
+      if (!ids.length) return { ...d, history }
+      const weights = { ...d.weights }
+      for (const id of ids) weights[id] = [entries[id], ...(weights[id] ?? [])].slice(0, 50)
+      return { ...d, history, weights }
+    })
+  }, [])
   const updateSettings = useCallback((s: Partial<Settings>) => setData((d) => ({ ...d, settings: { ...d.settings, ...s } })), [])
   const replaceAll = useCallback((nd: AppData) => setData(sanitize(nd)), [])
   const clearAll = useCallback(() => setData(emptyData()), [])
 
   const value = useMemo(
-    () => ({ data, plans, getPlan, savePlan, deletePlan, addLog, deleteLog, logWeights, updateSettings, replaceAll, clearAll }),
-    [data, plans, getPlan, savePlan, deletePlan, addLog, deleteLog, logWeights, updateSettings, replaceAll, clearAll],
+    () => ({ data, plans, getPlan, savePlan, deletePlan, saveWorkout, deleteLog, updateSettings, replaceAll, clearAll }),
+    [data, plans, getPlan, savePlan, deletePlan, saveWorkout, deleteLog, updateSettings, replaceAll, clearAll],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
